@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Products collection: Anyone can read, only Admin can write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews collection: Anyone can read, authenticated customers can write/edit their own, admin can moderate
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.user_id == request.auth.uid);
+    }
+
+    // Orders collection: Authenticated owners can read/write their own, admin can read/write everything
+    match /orders/{orderId} {
+      allow read, create: if isAuthenticated() && (request.resource.data.user_id == request.auth.uid || resource.data.user_id == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Users collection: Owners can read/write their own profiles, admin can read/write everything
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

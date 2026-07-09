@@ -1,0 +1,79 @@
+name: Security Review Automation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  security-audit:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Backend & Security Dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install openpyxl bandit pip-audit
+
+      - name: Launch Backend Server in Background
+        run: |
+          cd backend
+          python run.py &
+        env:
+          FLASK_ENV: development
+          PORT: 5001
+          JWT_SECRET: ci-test-secret-key-12345
+          SECRET_KEY: ci-test-flask-secret-key-12345
+
+      - name: Wait for API Endpoint to Respond
+        run: |
+          npx wait-on http://localhost:5001/api/health
+
+      - name: Run Security Audit Suite
+        run: |
+          python scripts/security_audit.py
+
+      - name: Upload Security Review Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Security_Vulnerability_Reports
+          path: |
+            Test Results/Security/security-report.html
+            Test Results/Security/Security_Vulnerability_Report.xlsx
+            Test Results/Security/security-report.json
+            Test Results/Security/security-summary.md
+
+      - name: Publish Security Run Summary
+        if: always()
+        run: |
+          if [ -f "Test Results/Security/security-summary.md" ]; then
+            cat "Test Results/Security/security-summary.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "# Security Audit Error" >> $GITHUB_STEP_SUMMARY
+            echo "Security review summary report was not generated." >> $GITHUB_STEP_SUMMARY
+          fi

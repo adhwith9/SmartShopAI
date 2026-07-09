@@ -1,0 +1,28 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/smartshop-ai/smartshop-ai:$SHORT_SHA
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/smartshop-ai/smartshop-ai:$SHORT_SHA
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - smartshop-ai
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/smartshop-ai/smartshop-ai:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-env-vars=SECRET_KEY=${_SECRET_KEY},JWT_SECRET=${_JWT_SECRET},DATABASE_URL=sqlite:///smartshop.db
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/smartshop-ai/smartshop-ai:$SHORT_SHA
+substitutions:
+  _REGION: us-central1
+  _SECRET_KEY: change-me-in-google-cloud
+  _JWT_SECRET: change-me-too-in-google-cloud

@@ -1,0 +1,13 @@
+{
+  "name": "smartshop-selenium-web-node",
+  "version": "1.0.0",
+  "description": "SmartShop AI Selenium Web E2E automated test suite",
+  "main": "web_e2e.js",
+  "scripts": {
+    "test": "node web_e2e.js"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.20.0",
+    "exceljs": "^4.4.0"
+  }
+}

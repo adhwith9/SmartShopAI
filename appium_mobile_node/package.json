@@ -1,0 +1,13 @@
+{
+  "name": "smartshop-appium-mobile-node",
+  "version": "1.0.0",
+  "description": "SmartShop AI Appium Mobile E2E automated test suite",
+  "main": "mobile_e2e.js",
+  "scripts": {
+    "test": "node mobile_e2e.js"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.20.0",
+    "exceljs": "^4.4.0"
+  }
+}

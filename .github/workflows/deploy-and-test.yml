@@ -1,0 +1,166 @@
+name: Deployment and Live E2E Testing
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-and-test:
+    name: Build, Deploy & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Backend Server Dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Launch Backend Server in Background
+        run: |
+          cd backend
+          python run.py &
+        env:
+          FLASK_ENV: development
+          PORT: 5001
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build React Frontend App
+        run: |
+          cd frontend
+          # VITE_API_BASE points to localhost Flask API; VITE_BASE_PATH aligns with GitHub Pages subfolder
+          VITE_API_BASE="http://localhost:5001/api" VITE_BASE_PATH="/${{ github.event.repository.name }}/" npm run build
+        env:
+          VITE_API_BASE: http://localhost:5001/api
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Deploy Web App to GitHub Pages (gh-pages branch)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Clone gh-pages branch or initialize it if absent
+          git clone --depth=1 --branch gh-pages https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp || {
+            mkdir gh-pages-temp
+            cd gh-pages-temp
+            git init
+            git remote add origin https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            git checkout -b gh-pages
+            cd ..
+          }
+          
+          # Copy compiled Vite assets (dist/) to the branch root, leaving other folders (like reports/) intact
+          cp -r frontend/dist/* gh-pages-temp/
+          
+          cd gh-pages-temp
+          git add -A
+          git commit -m "Deploy Web App to GitHub Pages - Build ${{ github.run_number }}" || exit 0
+          git push origin gh-pages
+
+      - name: Verify Live Deployment URL
+        id: verify_url
+        run: |
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "Target Live URL: $URL"
+          
+          # Check if URL is reachable
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          echo "Initial HTTP status code: $STATUS"
+          
+          if [ "${{ github.event_name }}" = 'pull_request' ]; then
+            if [ "$STATUS" != "200" ]; then
+              echo "Deployment URL is not active (HTTP $STATUS) and this is a Pull Request. Skipping Selenium E2E runs."
+              echo "RUN_TESTS=false" >> $GITHUB_ENV
+            else
+              echo "Deployment URL is active. Proceeding to run E2E checks on PR."
+              echo "RUN_TESTS=true" >> $GITHUB_ENV
+            fi
+          else
+            echo "Waiting for GitHub Pages build to go live..."
+            ONLINE=false
+            for i in {1..30}; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+              if [ "$STATUS" = "200" ]; then
+                echo "Live URL is online! (HTTP 200)"
+                ONLINE=true
+                break
+              fi
+              echo "Still waiting... (HTTP $STATUS) - attempt $i/30"
+              sleep 10
+            done
+            
+            if [ "$ONLINE" = "true" ]; then
+              echo "RUN_TESTS=true" >> $GITHUB_ENV
+            else
+              echo "Timeout waiting for GitHub Pages deployment. Failing build."
+              exit 1
+            fi
+          fi
+
+      - name: Install Selenium Web Test Runner Dependencies
+        if: env.RUN_TESTS == 'true'
+        run: |
+          cd selenium_web_node
+          npm install
+
+      - name: Run Headless Selenium E2E Test Suite on Live URL
+        if: env.RUN_TESTS == 'true'
+        run: |
+          cd selenium_web_node
+          # Configure BASE_URL environment variable to point to live GitHub Pages address
+          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" GITHUB_RUN_NUMBER="${{ github.run_number }}" node web_e2e.js
+        env:
+          BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Upload Test Report Artifacts
+        if: always() && env.RUN_TESTS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Live_Selenium_E2E_Test_Reports
+          path: |
+            Test Results/Excel/Automation_Test_Report.xlsx
+            Test Results/HTML/execution-report.html
+            Test Results/Screenshots/
+            Test Results/Logs/
+            Test Results/Summary/summary.md
+
+      - name: Publish Live E2E Actions Run Summary
+        if: always() && env.RUN_TESTS == 'true'
+        run: |
+          if [ -f "Test Results/Summary/summary.md" ]; then
+            cat "Test Results/Summary/summary.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "# E2E Testing Summary Error" >> $GITHUB_STEP_SUMMARY
+            echo "Selenium execution report was not completed or failed before creating outputs." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,13 @@
+{
+  "name": "smartshop-load-testing-node",
+  "version": "1.0.0",
+  "description": "SmartShop AI Autocannon Load testing suite",
+  "main": "load_test.js",
+  "scripts": {
+    "test": "node load_test.js"
+  },
+  "dependencies": {
+    "autocannon": "^7.15.0",
+    "exceljs": "^4.4.0"
+  }
+}

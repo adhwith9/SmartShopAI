@@ -1,0 +1,59 @@
+name: Web Selenium E2E Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  selenium-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install & Seed Backend
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python seed.py
+          python app.py &
+        env:
+          FLASK_ENV: development
+
+      - name: Install & Run Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run dev &
+        
+      - name: Run Web Selenium E2E Suite
+        run: |
+          cd selenium_web_node
+          npm install
+          npx wait-on http://localhost:5001/api/products http://localhost:5173
+          node web_e2e.js
+
+      - name: Upload Test Report & Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-selenium-reports
+          path: |
+            selenium_web_node/reports/
+            selenium_web_node/screenshots/

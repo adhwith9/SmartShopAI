@@ -1,0 +1,16 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5001:5001"
+    environment:
+      - SECRET_KEY=change-me
+      - JWT_SECRET=change-me-too
+      - DATABASE_URL=sqlite:///smartshop.db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
