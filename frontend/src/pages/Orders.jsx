@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Package, Truck, Clock, CheckCircle2 } from "lucide-react";
+import { Package, CheckCircle2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
@@ -60,7 +60,7 @@ export default function Orders({ setPage }) {
                   <span className="inline-flex items-center gap-1 rounded bg-mint/15 px-2.5 py-1 text-xs font-bold text-mint">
                     <CheckCircle2 size={14} /> {o.status || "Processing"}
                   </span>
-                  <span className="font-black text-mint text-base">${(o.total_amount || 0).toFixed(2)}</span>
+                  <span className="font-black text-mint text-base">₹{(o.total_amount || 0).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

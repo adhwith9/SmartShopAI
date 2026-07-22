@@ -45,7 +45,7 @@ export default function Home({ setPage }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-mint/15 text-mint"><Truck size={20} /></div>
-            <div><strong className="block text-sm">Free Express Shipping</strong><span className="text-xs text-slate-500">Orders over $50</span></div>
+            <div><strong className="block text-sm">Free Express Shipping</strong><span className="text-xs text-slate-500">Orders over ₹2,000</span></div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-sky-500/15 text-sky-500"><ShieldCheck size={20} /></div>
@@ -104,7 +104,7 @@ export default function Home({ setPage }) {
                 <h3 className="mt-2 font-bold text-slate-900 dark:text-white line-clamp-1">{p.name}</h3>
                 <p className="mt-1 text-xs text-slate-500 line-clamp-2">{p.description}</p>
                 <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 dark:border-white/5">
-                  <span className="text-lg font-black text-mint">${p.price.toFixed(2)}</span>
+                  <span className="text-lg font-black text-mint">₹{p.price.toLocaleString('en-IN')}</span>
                   <button className="btn-primary py-1.5 px-3 text-xs" onClick={() => handleAddToCart(p)}>
                     {addedIds[p.product_id] ? <><Check size={14} /> Added</> : <><ShoppingBag size={14} /> Add to Cart</>}
                   </button>

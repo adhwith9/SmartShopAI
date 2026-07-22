@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Download, Users, Package, DollarSign, Database } from "lucide-react";
+import { Download, Database } from "lucide-react";
 import MetricCard from "../components/MetricCard";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
@@ -15,7 +15,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState("analytics");
-  const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 99, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
+  const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 14999, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
 
   async function load() {
     const [o, c, p, ord, r] = await Promise.all([
@@ -25,8 +25,8 @@ export default function Admin() {
   }
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user]);
-  if (user?.role !== "admin") return <main className="section"><h1 className="text-2xl font-black">Admin login required.</h1></main>;
-  if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading dashboard...</h1></main>;
+  if (user?.role !== "admin") return <main className="section"><h1 className="text-2xl font-black">Admin portal login required.</h1></main>;
+  if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading admin dashboard...</h1></main>;
 
   function exportCustomerDataset() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
@@ -62,7 +62,7 @@ export default function Admin() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard label="Revenue" value={`$${overview.revenue}`} detail="+24% lift" />
+        <MetricCard label="Revenue" value={`₹${overview.revenue}`} detail="+24% lift" />
         <MetricCard label="Total Customers" value={customers.length || overview.users} detail="in dataset" tone="sky" />
         <MetricCard label="Total Orders" value={orders.length || overview.orders} detail="processed" tone="gold" />
         <MetricCard label="Products" value={products.length || overview.products} detail="catalog SKUs" tone="coral" />
@@ -104,7 +104,7 @@ export default function Admin() {
                       {c.address?.street ? `${c.address.street}, ${c.address.city}, ${c.address.state}` : "Standard Shipping On File"}
                     </td>
                     <td className="p-3 font-bold">{c.orders_count || 1}</td>
-                    <td className="p-3 font-bold text-mint">${(c.total_spent || 199.99).toFixed(2)}</td>
+                    <td className="p-3 font-bold text-mint">₹{(c.total_spent || 16999).toLocaleString('en-IN')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -115,7 +115,7 @@ export default function Admin() {
         <>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
             <section className="panel">
-              <h3 className="panel-title">Sales and behavior analytics</h3>
+              <h3 className="panel-title">Sales and behavior analytics (₹ INR)</h3>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={overview.categorySales}>
@@ -160,7 +160,7 @@ export default function Admin() {
                   <div className="row-card" key={o.order_id || Math.random()}>
                     <span className="font-bold">Order #{o.order_id}</span>
                     <span className="text-xs text-slate-500">{o.user_email}</span>
-                    <span className="font-bold text-mint">${(o.total_amount || 0).toFixed(2)}</span>
+                    <span className="font-bold text-mint">₹{(o.total_amount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 ))}
               </div>

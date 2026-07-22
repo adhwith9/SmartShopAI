@@ -14,20 +14,20 @@ export default function Cart({ setPage }) {
     city: user?.address?.city || "Springfield",
     state: user?.address?.state || "IL",
     zip: user?.address?.zip || "62704",
-    phone: user?.address?.phone || "+1 (555) 019-2831"
+    phone: user?.address?.phone || "+91 9876543210"
   });
 
   const [couponCode, setCouponCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
   const [couponMsg, setCouponMsg] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discountAmount = (subtotal * discountPercent) / 100;
-  const shippingFee = subtotal > 50 || !cart.length ? 0 : 9.99;
-  const taxAmount = (subtotal - discountAmount) * 0.08;
+  const shippingFee = subtotal > 2000 || !cart.length ? 0 : 99;
+  const taxAmount = (subtotal - discountAmount) * 0.18; // 18% GST in India
   const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee + taxAmount);
 
   function updateQuantity(productId, delta) {
@@ -72,7 +72,7 @@ export default function Cart({ setPage }) {
           subtotal,
           discount: discountAmount,
           total_amount: grandTotal,
-          payment_method: paymentMethod === "stripe" ? "Stripe (Test Mode)" : "Razorpay (Test Mode)",
+          payment_method: paymentMethod === "upi" ? "Razorpay / UPI (Test Mode)" : "Stripe / Card (Test Mode)",
           address
         })
       });
@@ -92,9 +92,9 @@ export default function Cart({ setPage }) {
       <div className="section-title">
         <div>
           <p>Checkout Pipeline</p>
-          <h2>{step === "address" ? "Shipping Address" : step === "payment" ? "Select Payment Method" : step === "success" ? "Order Confirmed!" : "Shopping Cart"}</h2>
+          <h2>{step === "address" ? "Delivery Address" : step === "payment" ? "Select Payment Method" : step === "success" ? "Order Confirmed!" : "Shopping Cart"}</h2>
         </div>
-        <span className="font-bold text-mint">${grandTotal.toFixed(2)}</span>
+        <span className="font-bold text-mint">₹{grandTotal.toLocaleString('en-IN')}</span>
       </div>
 
       {step === "cart" && (
@@ -112,7 +112,7 @@ export default function Cart({ setPage }) {
                   <img src={item.image} className="h-16 w-16 rounded-lg object-cover" alt={item.name} />
                   <div className="flex-1 min-w-0">
                     <strong className="block text-sm truncate">{item.name}</strong>
-                    <span className="text-xs text-slate-500">${item.price.toFixed(2)} each</span>
+                    <span className="text-xs text-slate-500">₹{item.price.toLocaleString('en-IN')} each</span>
                   </div>
 
                   <div className="flex items-center gap-2 rounded border border-black/15 px-2 py-1 dark:border-white/15">
@@ -121,7 +121,7 @@ export default function Cart({ setPage }) {
                     <button onClick={() => updateQuantity(item.product_id, 1)} className="p-0.5 hover:text-mint"><Plus size={14} /></button>
                   </div>
 
-                  <span className="font-bold text-mint text-sm w-20 text-right">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="font-bold text-mint text-sm w-24 text-right">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                   <button onClick={() => removeItem(item.product_id)} className="text-coral hover:opacity-75 p-1"><Trash2 size={16} /></button>
                 </div>
               ))
@@ -148,12 +148,12 @@ export default function Cart({ setPage }) {
               </form>
 
               <div className="space-y-2 text-xs border-t border-black/10 pt-3 dark:border-white/10">
-                <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                {discountAmount > 0 && <div className="flex justify-between text-mint font-bold"><span>Discount (20%)</span><span>-${discountAmount.toFixed(2)}</span></div>}
-                <div className="flex justify-between"><span>Estimated Tax (8%)</span><span>${taxAmount.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Shipping Fee</span><span>{shippingFee === 0 ? "FREE" : `$${shippingFee.toFixed(2)}`}</span></div>
+                <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span></div>
+                {discountAmount > 0 && <div className="flex justify-between text-mint font-bold"><span>Discount (20%)</span><span>-₹{discountAmount.toLocaleString('en-IN')}</span></div>}
+                <div className="flex justify-between"><span>GST (18%)</span><span>₹{taxAmount.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between"><span>Express Delivery</span><span>{shippingFee === 0 ? "FREE" : `₹${shippingFee}`}</span></div>
                 <div className="flex justify-between text-sm font-black border-t border-black/10 pt-2 text-mint dark:border-white/10">
-                  <span>Grand Total</span><span>${grandTotal.toFixed(2)}</span>
+                  <span>Grand Total</span><span>₹{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -204,7 +204,7 @@ export default function Cart({ setPage }) {
 
             <div><label className="label">City</label><input required className="input mt-1" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} /></div>
             <div><label className="label">State / Province</label><input required className="input mt-1" value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} /></div>
-            <div><label className="label">ZIP Code</label><input required className="input mt-1" value={address.zip} onChange={(e) => setAddress({ ...address, zip: e.target.value })} /></div>
+            <div><label className="label">PIN Code</label><input required className="input mt-1" value={address.zip} onChange={(e) => setAddress({ ...address, zip: e.target.value })} /></div>
           </div>
 
           <div className="mt-6 flex justify-between border-t border-black/10 pt-4 dark:border-white/10">
@@ -220,31 +220,31 @@ export default function Cart({ setPage }) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div
-              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "stripe" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
-              onClick={() => setPaymentMethod("stripe")}
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "upi" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("upi")}
             >
-              <strong className="block text-sm font-bold">Stripe Payment Gateway (Test Mode)</strong>
-              <p className="text-xs text-slate-500 mt-1">Accept Visa, Mastercard, Apple Pay & International Cards</p>
+              <strong className="block text-sm font-bold">Razorpay / UPI / NetBanking (Test Mode)</strong>
+              <p className="text-xs text-slate-500 mt-1">Pay via Google Pay, PhonePe, Paytm, BHIM & NetBanking</p>
             </div>
 
             <div
-              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "razorpay" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
-              onClick={() => setPaymentMethod("razorpay")}
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "stripe" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("stripe")}
             >
-              <strong className="block text-sm font-bold">Razorpay Payment Gateway (Test Mode)</strong>
-              <p className="text-xs text-slate-500 mt-1">Accept UPI, NetBanking, Debit Cards & Wallets</p>
+              <strong className="block text-sm font-bold">Stripe International Card (Test Mode)</strong>
+              <p className="text-xs text-slate-500 mt-1">Accept Visa, Mastercard, American Express & Apple Pay</p>
             </div>
           </div>
 
           <div className="rounded bg-slate-100 p-4 text-xs dark:bg-slate-800 space-y-1">
             <p><strong>Shipping to:</strong> {address.fullName}, {address.street}, {address.city}, {address.state} {address.zip}</p>
-            <p><strong>Total Payable:</strong> <span className="font-bold text-mint text-sm">${grandTotal.toFixed(2)}</span></p>
+            <p><strong>Total Payable:</strong> <span className="font-bold text-mint text-sm">₹{grandTotal.toLocaleString('en-IN')}</span></p>
           </div>
 
           <div className="flex justify-between border-t border-black/10 pt-4 dark:border-white/10">
             <button className="btn-secondary" onClick={() => setStep("address")}>Back</button>
             <button className="btn-primary" disabled={loading} onClick={handleConfirmOrder}>
-              {loading ? "Verifying & Saving Order..." : `Pay $${grandTotal.toFixed(2)} & Complete Order`}
+              {loading ? "Verifying & Saving Order..." : `Pay ₹${grandTotal.toLocaleString('en-IN')} & Complete Order`}
             </button>
           </div>
         </div>
@@ -263,7 +263,7 @@ export default function Cart({ setPage }) {
               <p><strong>Order ID:</strong> #{confirmedOrder.order_id}</p>
               <p><strong>Tracking Number:</strong> <span className="font-mono font-bold text-mint">{confirmedOrder.tracking_number}</span></p>
               <p><strong>Estimated Delivery:</strong> {confirmedOrder.estimated_delivery}</p>
-              <p><strong>Total Amount:</strong> ${confirmedOrder.total_amount.toFixed(2)}</p>
+              <p><strong>Total Amount:</strong> ₹{confirmedOrder.total_amount.toLocaleString('en-IN')}</p>
             </div>
           )}
 

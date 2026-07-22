@@ -6,8 +6,8 @@ export const MOCK_PRODUCTS = [
     name: "AeroPods Max Wireless Headphones",
     category: "Audio",
     brand: "SoundTech",
-    price: 199.99,
-    original_price: 249.99,
+    price: 16999,
+    original_price: 19999,
     rating: 4.8,
     reviews_count: 142,
     stock: 25,
@@ -32,8 +32,8 @@ export const MOCK_PRODUCTS = [
     name: "CyberWatch Pro Smartwatch",
     category: "Wearables",
     brand: "CyberGear",
-    price: 299.99,
-    original_price: 349.99,
+    price: 24999,
+    original_price: 29999,
     rating: 4.6,
     reviews_count: 98,
     stock: 18,
@@ -56,8 +56,8 @@ export const MOCK_PRODUCTS = [
     name: "NeuraSound Earbuds",
     category: "Audio",
     brand: "SoundTech",
-    price: 129.99,
-    original_price: 159.99,
+    price: 9999,
+    original_price: 12999,
     rating: 4.7,
     reviews_count: 76,
     stock: 30,
@@ -78,8 +78,8 @@ export const MOCK_PRODUCTS = [
     name: "VisionGlass AR Glasses",
     category: "Wearables",
     brand: "VisionCorp",
-    price: 499.99,
-    original_price: 599.99,
+    price: 42999,
+    original_price: 49999,
     rating: 4.5,
     reviews_count: 34,
     stock: 10,
@@ -100,8 +100,8 @@ export const MOCK_PRODUCTS = [
     name: "ProBook X Laptop 16-inch",
     category: "Laptops",
     brand: "ComputeTech",
-    price: 1299.99,
-    original_price: 1499.99,
+    price: 109999,
+    original_price: 129999,
     rating: 4.9,
     reviews_count: 210,
     stock: 12,
@@ -124,8 +124,8 @@ export const MOCK_PRODUCTS = [
     name: "SmartPad Ultra Tablet 11",
     category: "Tablets",
     brand: "ComputeTech",
-    price: 599.99,
-    original_price: 699.99,
+    price: 49999,
+    original_price: 59999,
     rating: 4.7,
     reviews_count: 115,
     stock: 22,
@@ -153,7 +153,7 @@ export const MOCK_CATEGORIES = [
 export const MOCK_COUPONS = {
   "SMARTSHOP20": { discountPercent: 20, description: "20% Off AI Launch Special" },
   "WELCOME10": { discountPercent: 10, description: "10% Off First Order" },
-  "FREESHIP": { discountPercent: 0, freeShipping: true, description: "Free Express Shipping" }
+  "FREESHIP": { discountPercent: 0, freeShipping: true, description: "Free Express Delivery" }
 };
 
 class PersistentDatabase {
@@ -171,7 +171,7 @@ class PersistentDatabase {
           email: "user@smartshop.ai",
           password: "password123",
           role: "customer",
-          address: { fullName: "SmartShop Customer", street: "742 Evergreen Terrace", city: "Springfield", state: "IL", zip: "62704", phone: "+1 555-0199" },
+          address: { fullName: "SmartShop Customer", street: "742 Evergreen Terrace", city: "Springfield", state: "IL", zip: "62704", phone: "+91 9876543210" },
           preferences: ["Audio", "Wearables"],
           created_at: new Date().toISOString()
         },
@@ -181,7 +181,7 @@ class PersistentDatabase {
           email: "admin@smartshop.ai",
           password: "admin123",
           role: "admin",
-          address: { fullName: "System Administrator", street: "1 Infinite Loop", city: "Cupertino", state: "CA", zip: "95014", phone: "+1 555-0100" },
+          address: { fullName: "System Administrator", street: "1 Infinite Loop", city: "Cupertino", state: "CA", zip: "95014", phone: "+91 9999900000" },
           preferences: ["All"],
           created_at: new Date().toISOString()
         }
@@ -204,7 +204,7 @@ class PersistentDatabase {
           {
             id: 102,
             sender: "system@smartshop.ai",
-            subject: "⚡ Admin Access Granted",
+            subject: "⚡ Admin Portal Access Activated",
             date: new Date().toLocaleDateString(),
             snippet: "You have full administrator privileges to view customer datasets, manage inventory, and monitor orders."
           }
@@ -319,7 +319,7 @@ class PersistentDatabase {
         email: email,
         password: "otp-verified-pass",
         role: email.includes("admin") ? "admin" : "customer",
-        address: { fullName: name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+1 555-0144" },
+        address: { fullName: name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+91 9876543210" },
         preferences: Array.isArray(preferences) ? preferences : ["General"],
         created_at: new Date().toISOString()
       };
@@ -338,13 +338,45 @@ class PersistentDatabase {
     this.addEmail(email, {
       id: Date.now(),
       sender: "security@smartshop.ai",
-      subject: "🔐 Successful Login via OTP Verification",
+      subject: "🔐 Successful Customer Login via OTP",
       date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       snippet: `Login successful for ${email}. Welcome back to SmartShop AI!`
     });
 
     return {
       token: `jwt-otp-token-${found.user_id}-${Date.now()}`,
+      user: found
+    };
+  }
+
+  adminLogin(email, password) {
+    const users = this.getUsers();
+    const adminUser = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.role === "admin"
+    );
+
+    if (!adminUser && password !== "admin123") {
+      throw new Error("Invalid Administrator Credentials or Passcode.");
+    }
+
+    const found = adminUser || {
+      user_id: 2,
+      name: "System Admin",
+      email: email || "admin@smartshop.ai",
+      role: "admin",
+      address: { fullName: "System Administrator", street: "1 Infinite Loop", city: "Cupertino", state: "CA", zip: "95014", phone: "+91 9999900000" }
+    };
+
+    this.addEmail(found.email, {
+      id: Date.now(),
+      sender: "security@smartshop.ai",
+      subject: "⚡ Admin Portal Authenticated",
+      date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      snippet: `Administrator login confirmed for ${found.email}. Full operations control active.`
+    });
+
+    return {
+      token: `admin-jwt-token-${found.user_id}-${Date.now()}`,
       user: found
     };
   }
@@ -365,10 +397,10 @@ class PersistentDatabase {
       user_email: userEmail,
       user_name: currentUser.name,
       items: orderData.items || [],
-      subtotal: orderData.subtotal || orderData.total_amount || 199.99,
+      subtotal: orderData.subtotal || orderData.total_amount || 14999,
       discount: orderData.discount || 0,
-      total_amount: orderData.total_amount || 199.99,
-      payment_method: orderData.payment_method || "Credit Card (Test Mode)",
+      total_amount: orderData.total_amount || 14999,
+      payment_method: orderData.payment_method || "Razorpay / UPI (Test Mode)",
       payment_status: "Paid & Verified",
       shipping_address: orderData.address || currentUser.address || {},
       status: "Processing & Order Confirmed",
@@ -380,13 +412,13 @@ class PersistentDatabase {
     orders.unshift(newOrder);
     this.saveOrders(orders);
 
-    const addrStr = newOrder.shipping_address.street ? `${newOrder.shipping_address.street}, ${newOrder.shipping_address.city}` : "Saved Shipping Address";
+    const addrStr = newOrder.shipping_address.street ? `${newOrder.shipping_address.street}, ${newOrder.shipping_address.city}` : "Saved Delivery Address";
     this.addEmail(userEmail, {
       id: Date.now(),
       sender: "fulfillment@smartshop.ai",
       subject: `📦 Order Confirmation #ORD-${newOrder.order_id}`,
       date: new Date().toLocaleDateString(),
-      snippet: `Thank you for your order! Your purchase of $${newOrder.total_amount.toFixed(2)} is confirmed. Tracking: ${newOrder.tracking_number}. Delivering to: ${addrStr}.`
+      snippet: `Thank you for your order! Your purchase of ₹${newOrder.total_amount.toLocaleString('en-IN')} is confirmed. Tracking: ${newOrder.tracking_number}. Delivering to: ${addrStr}.`
     });
 
     return newOrder;
@@ -437,6 +469,11 @@ export async function api(path, options = {}) {
     console.warn(`API call to ${path} using persistent database fallback.`);
   }
 
+  if (path.includes("/auth/admin-login")) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    return db.adminLogin(body.email || "admin@smartshop.ai", body.password || "admin123");
+  }
+
   if (path.includes("/auth/send-otp")) {
     const body = options.body ? JSON.parse(options.body) : {};
     return db.sendOtp(body.email || "user@gmail.com");
@@ -449,6 +486,7 @@ export async function api(path, options = {}) {
 
   if (path.includes("/auth/login")) {
     const body = options.body ? JSON.parse(options.body) : {};
+    if (body.role === "admin") return db.adminLogin(body.email, body.password);
     return db.verifyOtp(body.email, body.otp || "123456", body.name);
   }
 
@@ -482,15 +520,15 @@ export async function api(path, options = {}) {
     const dataset = db.getCustomerDataset();
     const orders = db.getOrders();
     return {
-      revenue: (orders.reduce((sum, o) => sum + (o.total_amount || 0), 1250)).toFixed(2),
+      revenue: (orders.reduce((sum, o) => sum + (o.total_amount || 0), 245000)).toLocaleString('en-IN'),
       users: dataset.length,
       orders: orders.length + 15,
       products: MOCK_PRODUCTS.length,
       categorySales: [
-        { category: "Audio", value: 4500 },
-        { category: "Wearables", value: 3800 },
-        { category: "Laptops", value: 5200 },
-        { category: "Tablets", value: 2400 }
+        { category: "Audio", value: 450000 },
+        { category: "Wearables", value: 380000 },
+        { category: "Laptops", value: 520000 },
+        { category: "Tablets", value: 240000 }
       ],
       recommendationMetrics: { ctr: 4.8, conversionLift: 18.5, coverage: 94.2, model: "Hybrid Collaborative & Content Filtering" },
       lowStock: [MOCK_PRODUCTS[0], MOCK_PRODUCTS[2]]

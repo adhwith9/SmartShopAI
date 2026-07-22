@@ -7,7 +7,7 @@ export default function Shop({ search = "", setPage }) {
   const { addToCart } = useApp();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
-  const [maxPrice, setMaxPrice] = useState(1500);
+  const [maxPrice, setMaxPrice] = useState(150000);
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("featured");
   const [addedIds, setAddedIds] = useState({});
@@ -55,7 +55,7 @@ export default function Shop({ search = "", setPage }) {
             <h3 className="flex items-center gap-2 font-bold"><SlidersHorizontal size={18} /> Filters</h3>
             <button
               className="text-xs text-mint underline font-semibold"
-              onClick={() => { setSelectedCategory("All"); setSelectedBrand("All"); setMaxPrice(1500); setMinRating(0); setSortBy("featured"); }}
+              onClick={() => { setSelectedCategory("All"); setSelectedBrand("All"); setMaxPrice(150000); setMinRating(0); setSortBy("featured"); }}
             >
               Reset All
             </button>
@@ -97,17 +97,17 @@ export default function Shop({ search = "", setPage }) {
             </select>
           </div>
 
-          {/* Max Price Slider */}
+          {/* Max Price Slider (INR) */}
           <div className="mt-5 border-t border-black/10 pt-4 dark:border-white/10">
             <div className="flex justify-between text-sm font-semibold mb-2">
               <label className="label">Max Price</label>
-              <span className="text-mint">${maxPrice}</span>
+              <span className="text-mint">₹{maxPrice.toLocaleString('en-IN')}</span>
             </div>
             <input
               type="range"
-              min={100}
-              max={1500}
-              step={50}
+              min={5000}
+              max={150000}
+              step={5000}
               className="w-full accent-mint"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -159,7 +159,7 @@ export default function Shop({ search = "", setPage }) {
               <p className="mt-1 text-sm text-slate-500">Try adjusting your price slider or selected category.</p>
               <button
                 className="btn-primary mt-4"
-                onClick={() => { setSelectedCategory("All"); setSelectedBrand("All"); setMaxPrice(1500); setMinRating(0); }}
+                onClick={() => { setSelectedCategory("All"); setSelectedBrand("All"); setMaxPrice(150000); setMinRating(0); }}
               >
                 Clear All Filters
               </button>
@@ -200,9 +200,9 @@ export default function Shop({ search = "", setPage }) {
 
                       <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 dark:border-white/5">
                         <div>
-                          <span className="text-lg font-black text-mint">${p.price.toFixed(2)}</span>
+                          <span className="text-lg font-black text-mint">₹{p.price.toLocaleString('en-IN')}</span>
                           {p.original_price > p.price && (
-                            <span className="ml-2 text-xs text-slate-400 line-through">${p.original_price.toFixed(2)}</span>
+                            <span className="ml-2 text-xs text-slate-400 line-through">₹{p.original_price.toLocaleString('en-IN')}</span>
                           )}
                         </div>
 
