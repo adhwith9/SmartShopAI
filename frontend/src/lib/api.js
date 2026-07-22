@@ -7,6 +7,7 @@ import {
   fetchOrdersFromSupabase,
   saveUserProfileInSupabase,
   fetchUserProfileFromSupabase,
+  fetchAllProfilesFromSupabase,
   addReviewInSupabase,
   fetchReviewsFromSupabase
 } from "./supabaseClient";
@@ -356,6 +357,16 @@ class PersistentDatabase {
       this.saveUsers(users);
     }
 
+    if (isSupabaseConfigured() && found) {
+      saveUserProfileInSupabase({
+        email: found.email,
+        name: found.name,
+        phone: found.phone,
+        address: found.address,
+        role: found.role
+      }).catch(e => console.warn("Supabase user sync error:", e));
+    }
+
     this.addEmail(email, {
       id: Date.now(),
       sender: "security@smartshop.ai",
@@ -520,6 +531,20 @@ export async function api(path, options = {}) {
         const body = options.body ? JSON.parse(options.body) : {};
         const supaReview = await addReviewInSupabase(body);
         if (supaReview) return supaReview;
+      }
+      if (path.includes("/auth/verify-otp") || path.includes("/auth/login") || path.includes("/auth/register")) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        if (body.email) {
+          saveUserProfileInSupabase({
+            email: body.email,
+            name: body.name || body.email.split("@")[0],
+            role: body.email.includes("admin") ? "admin" : "customer"
+          });
+        }
+      }
+      if (path.includes("/admin/customers") || path.includes("/admin/users")) {
+        const supaProfiles = await fetchAllProfilesFromSupabase();
+        if (supaProfiles && supaProfiles.length > 0) return supaProfiles;
       }
     } catch (supaErr) {
       console.warn("Supabase dataset query fallback to local store:", supaErr);

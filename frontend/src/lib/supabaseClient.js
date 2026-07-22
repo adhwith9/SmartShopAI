@@ -154,6 +154,23 @@ export async function saveUserProfileInSupabase(profileData) {
 }
 
 /**
+ * Fetch all user profiles from Supabase
+ */
+export async function fetchAllProfilesFromSupabase() {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all profiles from Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
  * Fetch user profile from Supabase
  */
 export async function fetchUserProfileFromSupabase(email) {
