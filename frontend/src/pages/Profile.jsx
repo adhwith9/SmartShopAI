@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Mail, ShieldCheck, UserCheck } from "lucide-react";
+import { Mail, ShieldCheck, UserCheck, UserPlus, Lock } from "lucide-react";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
-export default function Profile() {
+export default function Profile({ setPage }) {
   const { user } = useApp();
   const [name, setName] = useState(user?.name || "");
   const [preferences, setPreferences] = useState((user?.preferences || []).join(","));
@@ -19,8 +19,18 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <main className="section max-w-3xl text-center">
-        <h1 className="text-2xl font-black">Login to manage your profile and inbox.</h1>
+      <main className="grid min-h-[70vh] place-items-center px-4 py-10">
+        <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-8 text-center shadow-xl dark:border-white/10 dark:bg-slate-900 space-y-4">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-mint/20 text-mint">
+            <UserCheck size={28} />
+          </div>
+          <h1 className="text-2xl font-black">Login Required</h1>
+          <p className="text-sm text-slate-500">Log in or create an account to view your database email inbox, order history, and account settings.</p>
+          <div className="pt-2 flex justify-center gap-3">
+            <button className="btn-primary" onClick={() => setPage("auth")}>Login with Email OTP</button>
+            <button className="btn-secondary" onClick={() => setPage("auth")}>Create Account</button>
+          </div>
+        </div>
       </main>
     );
   }

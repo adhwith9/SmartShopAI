@@ -42,8 +42,8 @@ function Shell() {
     home: <Home recommendations={recommendations} trending={trending} onOpen={setSelected} setPage={setPage} />,
     shop: <Shop search={search} onOpen={setSelected} />,
     auth: <Auth setPage={setPage} />,
-    profile: <Profile />,
-    orders: <Orders />,
+    profile: <Profile setPage={setPage} />,
+    orders: <Orders setPage={setPage} />,
     cart: <Cart setPage={setPage} />,
     wishlist: <Wishlist onOpen={setSelected} />,
     admin: <Admin />

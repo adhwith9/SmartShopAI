@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Download, Database } from "lucide-react";
+import { Download, Database, ShieldCheck, Lock, Mail } from "lucide-react";
 import MetricCard from "../components/MetricCard";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
@@ -8,14 +8,19 @@ import { useApp } from "../context/AppContext";
 const colors = ["#20c997", "#38bdf8", "#ff6b6b", "#f7b801", "#8b5cf6", "#14b8a6"];
 
 export default function Admin() {
-  const { user } = useApp();
+  const { user, persistSession } = useApp();
   const [overview, setOverview] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState("analytics");
-  const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 14999, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
+  const [adminEmail, setAdminEmail] = useState("admin@smartshop.ai");
+  const [adminPass, setAdminPass] = useState("admin123");
+  const [loginError, setLoginError] = useState("");
+  const [loadingLogin, setLoadingLogin] = useState(false);
+
+  const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 14999, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
 
   async function load() {
     const [o, c, p, ord, r] = await Promise.all([
@@ -25,7 +30,87 @@ export default function Admin() {
   }
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user]);
-  if (user?.role !== "admin") return <main className="section"><h1 className="text-2xl font-black">Admin portal login required.</h1></main>;
+
+  async function handleAdminLoginSubmit(e) {
+    e.preventDefault();
+    setLoginError("");
+    setLoadingLogin(true);
+    try {
+      const res = await api("/auth/admin-login", {
+        method: "POST",
+        body: JSON.stringify({ email: adminEmail, password: adminPass })
+      });
+      persistSession(res);
+      await load();
+    } catch (err) {
+      setLoginError(err.message || "Admin authentication failed.");
+    } finally {
+      setLoadingLogin(false);
+    }
+  }
+
+  if (user?.role !== "admin") {
+    return (
+      <main className="grid min-h-[75vh] place-items-center px-4 py-10">
+        <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-indigo-500/20 text-indigo-500">
+              <ShieldCheck size={26} />
+            </div>
+            <div>
+              <h1 className="text-xl font-black">Admin Portal Login Required</h1>
+              <p className="text-xs text-slate-500">Log in with Administrator credentials to unlock control panel</p>
+            </div>
+          </div>
+
+          {loginError && (
+            <div className="mt-4 rounded bg-coral/10 p-3 text-xs font-bold text-coral">
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLoginSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className="label">Admin Email Address</label>
+              <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                <Mail size={18} className="mr-2 text-slate-400" />
+                <input
+                  required
+                  type="email"
+                  className="w-full bg-transparent text-sm outline-none"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Security Passcode</label>
+              <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                <Lock size={18} className="mr-2 text-slate-400" />
+                <input
+                  required
+                  type="password"
+                  className="w-full bg-transparent text-sm outline-none"
+                  value={adminPass}
+                  onChange={(e) => setAdminPass(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="rounded bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+              <strong>Admin Demo Credentials:</strong> admin@smartshop.ai / admin123
+            </div>
+
+            <button className="btn-primary mt-6 w-full justify-center" disabled={loadingLogin}>
+              {loadingLogin ? "Authenticating Admin..." : "Log in as Administrator"}
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
   if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading admin dashboard...</h1></main>;
 
   function exportCustomerDataset() {
