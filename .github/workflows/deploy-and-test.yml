@@ -63,6 +63,18 @@ jobs:
           VITE_API_BASE: http://localhost:5001/api
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'frontend/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
       - name: Deploy Web App to GitHub Pages (gh-pages branch)
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
