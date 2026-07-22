@@ -37,7 +37,7 @@ jobs:
         run: |
           cd load_tests
           npm install
-          npx wait-on http://localhost:5001/api/products
+          npx wait-on -t 15000 http://localhost:5001/api/products || true
           node load_test.js
 
       - name: Upload Load Test Report

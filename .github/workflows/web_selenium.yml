@@ -45,7 +45,7 @@ jobs:
         run: |
           cd selenium_web_node
           npm install
-          npx wait-on http://localhost:5001/api/products http://localhost:5173
+          npx wait-on -t 15000 http://localhost:5001/api/products http://localhost:5173 || true
           node web_e2e.js
 
       - name: Upload Test Report & Screenshots

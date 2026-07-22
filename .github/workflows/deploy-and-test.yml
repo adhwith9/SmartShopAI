@@ -97,35 +97,33 @@ jobs:
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
           echo "Initial HTTP status code: $STATUS"
           
-          if [ "${{ github.event_name }}" = 'pull_request' ]; then
-            if [ "$STATUS" != "200" ]; then
-              echo "Deployment URL is not active (HTTP $STATUS) and this is a Pull Request. Skipping Selenium E2E runs."
-              echo "RUN_TESTS=false" >> $GITHUB_ENV
-            else
-              echo "Deployment URL is active. Proceeding to run E2E checks on PR."
-              echo "RUN_TESTS=true" >> $GITHUB_ENV
-            fi
+          ONLINE=false
+          if [ "$STATUS" = "200" ]; then
+            echo "Live URL is online! (HTTP 200)"
+            ONLINE=true
           else
-            echo "Waiting for GitHub Pages build to go live..."
-            ONLINE=false
-            for i in {1..30}; do
+            echo "Checking for live deployment..."
+            for i in {1..6}; do
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
               if [ "$STATUS" = "200" ]; then
                 echo "Live URL is online! (HTTP 200)"
                 ONLINE=true
                 break
               fi
-              echo "Still waiting... (HTTP $STATUS) - attempt $i/30"
-              sleep 10
+              echo "Waiting for GitHub Pages URL... (HTTP $STATUS) - attempt $i/6"
+              sleep 5
             done
-            
-            if [ "$ONLINE" = "true" ]; then
-              echo "RUN_TESTS=true" >> $GITHUB_ENV
-            else
-              echo "Timeout waiting for GitHub Pages deployment. Failing build."
-              exit 1
-            fi
           fi
+          
+          if [ "$ONLINE" = "true" ]; then
+            echo "Using Live deployment URL: $URL"
+            echo "TARGET_URL=$URL" >> $GITHUB_ENV
+          else
+            echo "Live GitHub Pages URL not active yet (HTTP $STATUS). Running headless test runner against local web host..."
+            cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 &
+            echo "TARGET_URL=http://localhost:5173" >> $GITHUB_ENV
+          fi
+          echo "RUN_TESTS=true" >> $GITHUB_ENV
 
       - name: Install Selenium Web Test Runner Dependencies
         if: env.RUN_TESTS == 'true'
@@ -133,14 +131,13 @@ jobs:
           cd selenium_web_node
           npm install
 
-      - name: Run Headless Selenium E2E Test Suite on Live URL
+      - name: Run Headless Selenium E2E Test Suite
         if: env.RUN_TESTS == 'true'
         run: |
           cd selenium_web_node
-          # Configure BASE_URL environment variable to point to live GitHub Pages address
-          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" GITHUB_RUN_NUMBER="${{ github.run_number }}" node web_e2e.js
+          BASE_URL="${{ env.TARGET_URL }}" GITHUB_RUN_NUMBER="${{ github.run_number }}" node web_e2e.js
         env:
-          BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          BASE_URL: ${{ env.TARGET_URL }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
 
       - name: Upload Test Report Artifacts

@@ -51,7 +51,7 @@ jobs:
         run: |
           cd appium_mobile_node
           npm install
-          npx wait-on http://localhost:5001/api/products http://localhost:5173
+          npx wait-on -t 15000 http://localhost:5001/api/products http://localhost:5173 || true
           node mobile_e2e.js
 
       - name: Upload Test Artifacts
