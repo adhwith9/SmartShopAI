@@ -1,3 +1,16 @@
+import {
+  isSupabaseConfigured,
+  fetchProductsFromSupabase,
+  fetchProductByIdFromSupabase,
+  fetchCategoriesFromSupabase,
+  createOrderInSupabase,
+  fetchOrdersFromSupabase,
+  saveUserProfileInSupabase,
+  fetchUserProfileFromSupabase,
+  addReviewInSupabase,
+  fetchReviewsFromSupabase
+} from "./supabaseClient";
+
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 export const MOCK_PRODUCTS = [
@@ -476,6 +489,41 @@ export async function api(path, options = {}) {
     }
   } catch (err) {
     console.warn(`API call to ${path} using persistent database fallback.`);
+  }
+
+  // Supabase Dataset Live Integration Interceptor
+  if (isSupabaseConfigured()) {
+    try {
+      if (path.includes("/products") && !path.includes("/admin/")) {
+        const supaProducts = await fetchProductsFromSupabase();
+        if (supaProducts && supaProducts.length > 0) return supaProducts;
+      }
+      if (path.includes("/categories")) {
+        const supaCategories = await fetchCategoriesFromSupabase();
+        if (supaCategories && supaCategories.length > 0) return supaCategories;
+      }
+      if (path.includes("/orders") && options.method === "POST") {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaOrder = await createOrderInSupabase(body);
+        if (supaOrder) return supaOrder;
+      }
+      if (path.includes("/orders") && (!options.method || options.method === "GET")) {
+        const supaOrders = await fetchOrdersFromSupabase(currentUser?.email);
+        if (supaOrders) return supaOrders;
+      }
+      if (path.includes("/profile") && (options.method === "POST" || options.method === "PUT")) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaProfile = await saveUserProfileInSupabase(body);
+        if (supaProfile) return supaProfile;
+      }
+      if (path.includes("/reviews") && options.method === "POST") {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaReview = await addReviewInSupabase(body);
+        if (supaReview) return supaReview;
+      }
+    } catch (supaErr) {
+      console.warn("Supabase dataset query fallback to local store:", supaErr);
+    }
   }
 
   if (path.includes("/auth/admin-login")) {

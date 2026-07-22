@@ -43,3 +43,10 @@ validation_tests/reports/
 Test Results/
 Test\ Results/
 gh-pages-temp/
+
+# Environment and secrets
+.env
+.env.local
+*.env
+!.env.example
+
