@@ -1,0 +1,8 @@
+{
+  "appId": "com.smartshop.ai",
+  "appName": "SmartShop AI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
