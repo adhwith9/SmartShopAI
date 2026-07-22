@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Target base path for GitHub Pages subfolder deployment (adhwith9.github.io/SmartShopAI/)
 export default defineConfig({
-  base: "./",
+  base: "/SmartShopAI/",
   plugins: [react()],
   server: {
     proxy: {
