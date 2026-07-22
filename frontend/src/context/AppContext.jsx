@@ -15,17 +15,23 @@ export function AppProvider({ children }) {
   }, [theme]);
 
   function persistSession(payload) {
-    localStorage.setItem("smartshop_token", payload.token);
-    localStorage.setItem("smartshop_user", JSON.stringify(payload.user));
-    setUser(payload.user);
+    if (payload && payload.token && payload.user) {
+      localStorage.setItem("smartshop_token", payload.token);
+      localStorage.setItem("smartshop_user", JSON.stringify(payload.user));
+      setUser(payload.user);
+    }
   }
 
   async function login(email, password) {
-    persistSession(await api("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }));
+    const res = await api("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    persistSession(res);
+    return res;
   }
 
   async function register(form) {
-    persistSession(await api("/auth/register", { method: "POST", body: JSON.stringify(form) }));
+    const res = await api("/auth/register", { method: "POST", body: JSON.stringify(form) });
+    persistSession(res);
+    return res;
   }
 
   function logout() {
@@ -47,7 +53,7 @@ export function AppProvider({ children }) {
   }
 
   const value = useMemo(() => ({
-    theme, setTheme, user, login, register, logout, cart, setCart, addToCart, recentlyViewed, rememberProduct
+    theme, setTheme, user, persistSession, login, register, logout, cart, setCart, addToCart, recentlyViewed, rememberProduct
   }), [theme, user, cart, recentlyViewed]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

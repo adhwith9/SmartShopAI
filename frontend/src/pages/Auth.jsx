@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Auth({ setPage }) {
-  const { setCart } = useApp();
+  const { persistSession } = useApp();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
@@ -28,7 +28,7 @@ export default function Auth({ setPage }) {
         body: JSON.stringify({ email })
       });
       setSentOtpCode(res.otp || "742918");
-      setInfoMsg(`🔑 Verification OTP sent to ${email}. Check code below!`);
+      setInfoMsg(`🔑 Verification OTP sent to ${email}. Check code below & inbox!`);
       setStep("otp");
     } catch (err) {
       setError(err.message || "Failed to send OTP code.");
@@ -51,9 +51,8 @@ export default function Auth({ setPage }) {
         body: JSON.stringify({ email, otp, name })
       });
 
-      localStorage.setItem("smartshop_token", res.token);
-      localStorage.setItem("smartshop_user", JSON.stringify(res.user));
-      window.location.reload(); // Refresh app context state cleanly
+      persistSession(res);
+      setPage("home");
     } catch (err) {
       setError(err.message || "OTP verification failed.");
     } finally {
@@ -129,6 +128,7 @@ export default function Auth({ setPage }) {
               <div className="rounded border border-mint/40 bg-mint/15 p-3 text-center">
                 <span className="block text-xs font-semibold text-slate-600 dark:text-slate-300">Generated OTP Code:</span>
                 <span className="text-2xl font-black tracking-widest text-mint">{sentOtpCode}</span>
+                <p className="mt-1 text-[11px] text-slate-500">Also sent to your database email inbox</p>
               </div>
             )}
 
