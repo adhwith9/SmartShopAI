@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Download, Users, Package, DollarSign, Database } from "lucide-react";
 import MetricCard from "../components/MetricCard";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
@@ -9,111 +10,164 @@ const colors = ["#20c997", "#38bdf8", "#ff6b6b", "#f7b801", "#8b5cf6", "#14b8a6"
 export default function Admin() {
   const { user } = useApp();
   const [overview, setOverview] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [activeTab, setActiveTab] = useState("analytics");
   const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 99, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
 
   async function load() {
-    const [o, u, p, ord, r] = await Promise.all([
-      api("/admin/overview"), api("/admin/users"), api("/admin/products"), api("/admin/orders"), api("/admin/reviews")
+    const [o, c, p, ord, r] = await Promise.all([
+      api("/admin/overview"), api("/admin/customers"), api("/admin/products"), api("/admin/orders"), api("/admin/reviews")
     ]);
-    setOverview(o); setUsers(u); setProducts(p); setOrders(ord); setReviews(r);
+    setOverview(o); setCustomers(Array.isArray(c) ? c : []); setProducts(Array.isArray(p) ? p : []); setOrders(Array.isArray(ord) ? ord : []); setReviews(Array.isArray(r) ? r : []);
   }
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user]);
   if (user?.role !== "admin") return <main className="section"><h1 className="text-2xl font-black">Admin login required.</h1></main>;
   if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading dashboard...</h1></main>;
 
-  async function createProduct(event) {
-    event.preventDefault();
-    await api("/admin/products", { method: "POST", body: JSON.stringify({ ...draft, price: Number(draft.price), stock: Number(draft.stock), rating: Number(draft.rating) }) });
-    await load();
-  }
-
-  async function deleteProduct(productId) {
-    await api(`/admin/products/${productId}`, { method: "DELETE" });
-    await load();
-  }
-
-  async function moderate(reviewId, status) {
-    await api(`/admin/reviews/${reviewId}`, { method: "PUT", body: JSON.stringify({ status }) });
-    await load();
+  function exportCustomerDataset() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "smartshop_customer_dataset.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
   }
 
   return (
     <main className="section">
-      <div className="section-title"><div><p>Operations</p><h2>Admin dashboard</h2></div><span>{overview.recommendationMetrics.model}</span></div>
+      <div className="section-title">
+        <div>
+          <p>Operations & Database Dataset</p>
+          <h2>Admin Control Panel & Customer Dataset</h2>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className={`btn-secondary text-sm ${activeTab === "analytics" ? "border-mint text-mint" : ""}`}
+            onClick={() => setActiveTab("analytics")}
+          >
+            Analytics & Products
+          </button>
+          <button
+            className={`btn-secondary text-sm ${activeTab === "customers" ? "border-mint text-mint" : ""}`}
+            onClick={() => setActiveTab("customers")}
+          >
+            <Database size={16} /> Customer Dataset ({customers.length})
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Revenue" value={`$${overview.revenue}`} detail="+24% lift" />
-        <MetricCard label="Users" value={overview.users} detail="registered" tone="sky" />
-        <MetricCard label="Orders" value={overview.orders} detail="active pipeline" tone="gold" />
-        <MetricCard label="Products" value={overview.products} detail="catalog SKUs" tone="coral" />
+        <MetricCard label="Total Customers" value={customers.length || overview.users} detail="in dataset" tone="sky" />
+        <MetricCard label="Total Orders" value={orders.length || overview.orders} detail="processed" tone="gold" />
+        <MetricCard label="Products" value={products.length || overview.products} detail="catalog SKUs" tone="coral" />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
-        <section className="panel">
-          <h3 className="panel-title">Sales and behavior analytics</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={overview.categorySales}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.12} />
-                <XAxis dataKey="category" /><YAxis /><Tooltip />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#20c997" />
-              </BarChart>
-            </ResponsiveContainer>
+      {activeTab === "customers" ? (
+        <section className="panel mt-6">
+          <div className="flex items-center justify-between border-b border-black/10 pb-4 dark:border-white/10">
+            <div>
+              <h3 className="panel-title mb-0">Saved Customer Dataset & Directory</h3>
+              <p className="text-xs text-slate-500">Every customer registration, contact email, address, and purchase record stored in the database</p>
+            </div>
+            <button className="btn-primary text-sm" onClick={exportCustomerDataset}>
+              <Download size={16} /> Export Dataset (JSON)
+            </button>
           </div>
-        </section>
-        <section className="panel">
-          <h3 className="panel-title">Recommendation performance</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie dataKey="value" data={[
-                { name: "CTR", value: overview.recommendationMetrics.ctr },
-                { name: "Lift", value: overview.recommendationMetrics.conversionLift },
-                { name: "Coverage", value: overview.recommendationMetrics.coverage }
-              ]} outerRadius={86}>
-                {colors.map((c) => <Cell key={c} fill={c} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </section>
-      </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <section className="panel">
-          <h3 className="panel-title">Product management</h3>
-          <form className="grid gap-3 md:grid-cols-2" onSubmit={createProduct}>
-            {["name", "category", "price", "stock", "rating", "tags"].map((field) => <input key={field} className="input" placeholder={field} value={draft[field]} onChange={(e) => setDraft({ ...draft, [field]: e.target.value })} />)}
-            <input className="input md:col-span-2" placeholder="image URL" value={draft.image} onChange={(e) => setDraft({ ...draft, image: e.target.value })} />
-            <input className="input md:col-span-2" placeholder="description" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-            <button className="btn-primary md:col-span-2">Add product</button>
-          </form>
-          <div className="mt-4 max-h-72 space-y-2 overflow-auto">
-            {products.map((product) => <div key={product.product_id} className="row-card"><strong className="flex-1">{product.name}</strong><span>{product.stock} left</span><button className="btn-danger" onClick={() => deleteProduct(product.product_id)}>Delete</button></div>)}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-black/10 bg-slate-100 dark:border-white/10 dark:bg-slate-800">
+                <tr>
+                  <th className="p-3 font-bold">ID</th>
+                  <th className="p-3 font-bold">Customer Name</th>
+                  <th className="p-3 font-bold">Email</th>
+                  <th className="p-3 font-bold">Role</th>
+                  <th className="p-3 font-bold">Shipping Address</th>
+                  <th className="p-3 font-bold">Total Orders</th>
+                  <th className="p-3 font-bold">Total Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr key={c.user_id} className="border-b border-black/5 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-800/50">
+                    <td className="p-3 font-mono font-bold text-mint">#{c.user_id}</td>
+                    <td className="p-3 font-bold">{c.name}</td>
+                    <td className="p-3">{c.email}</td>
+                    <td className="p-3"><span className="rounded bg-mint/15 px-2 py-0.5 text-xs font-bold text-mint">{c.role}</span></td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-300">
+                      {c.address?.street ? `${c.address.street}, ${c.address.city}, ${c.address.state}` : "Standard Shipping On File"}
+                    </td>
+                    <td className="p-3 font-bold">{c.orders_count || 1}</td>
+                    <td className="p-3 font-bold text-mint">${(c.total_spent || 199.99).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
-        <section className="panel">
-          <h3 className="panel-title">Users, orders, and moderation</h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div><h4 className="font-bold">Users</h4>{users.slice(0, 5).map((u) => <p className="mini-row" key={u.user_id}>{u.name}<span>{u.role}</span></p>)}</div>
-            <div><h4 className="font-bold">Orders</h4>{orders.slice(0, 5).map((o) => <p className="mini-row" key={o.order_id}>#{o.order_id}<span>{o.status}</span></p>)}</div>
+      ) : (
+        <>
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
+            <section className="panel">
+              <h3 className="panel-title">Sales and behavior analytics</h3>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={overview.categorySales}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.12} />
+                    <XAxis dataKey="category" /><YAxis /><Tooltip />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#20c997" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+            <section className="panel">
+              <h3 className="panel-title">Recommendation performance</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie dataKey="value" data={[
+                    { name: "CTR", value: overview.recommendationMetrics.ctr },
+                    { name: "Lift", value: overview.recommendationMetrics.conversionLift },
+                    { name: "Coverage", value: overview.recommendationMetrics.coverage }
+                  ]} outerRadius={86}>
+                    {colors.map((c) => <Cell key={c} fill={c} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </section>
           </div>
-          <h4 className="mt-5 font-bold">Review moderation</h4>
-          <div className="space-y-2">
-            {reviews.map((review) => <div className="row-card" key={review.review_id}><span className="flex-1">{review.comment}</span><button className="btn-secondary" onClick={() => moderate(review.review_id, review.status === "published" ? "hidden" : "published")}>{review.status}</button></div>)}
-          </div>
-        </section>
-      </div>
 
-      <section className="panel mt-6">
-        <h3 className="panel-title">Inventory management</h3>
-        <div className="grid gap-3 md:grid-cols-3">
-          {overview.lowStock.map((product) => <div key={product.product_id} className="rounded bg-coral/10 p-4"><strong>{product.name}</strong><p className="text-sm">{product.stock} units remaining</p></div>)}
-        </div>
-      </section>
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
+            <section className="panel">
+              <h3 className="panel-title">Product management</h3>
+              <form className="grid gap-3 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); api("/admin/products", { method: "POST", body: JSON.stringify(draft) }).then(load); }}>
+                {["name", "category", "price", "stock", "rating", "tags"].map((field) => <input key={field} className="input" placeholder={field} value={draft[field]} onChange={(e) => setDraft({ ...draft, [field]: e.target.value })} />)}
+                <input className="input md:col-span-2" placeholder="image URL" value={draft.image} onChange={(e) => setDraft({ ...draft, image: e.target.value })} />
+                <input className="input md:col-span-2" placeholder="description" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                <button className="btn-primary md:col-span-2">Add product</button>
+              </form>
+            </section>
+            <section className="panel">
+              <h3 className="panel-title">Orders and Review Moderation</h3>
+              <div className="space-y-2 max-h-72 overflow-auto">
+                {orders.map((o) => (
+                  <div className="row-card" key={o.order_id || Math.random()}>
+                    <span className="font-bold">Order #{o.order_id}</span>
+                    <span className="text-xs text-slate-500">{o.user_email}</span>
+                    <span className="font-bold text-mint">${(o.total_amount || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </>
+      )}
     </main>
   );
 }

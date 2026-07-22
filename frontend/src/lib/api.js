@@ -70,7 +70,6 @@ export const MOCK_CATEGORIES = [
   { name: "Tablets", count: 1 }
 ];
 
-// Persistent Database Engine
 class PersistentDatabase {
   constructor() {
     this.init();
@@ -85,7 +84,9 @@ class PersistentDatabase {
           email: "user@smartshop.ai",
           password: "password123",
           role: "customer",
-          preferences: ["Audio", "Wearables"]
+          address: { fullName: "SmartShop Customer", street: "742 Evergreen Terrace", city: "Springfield", state: "IL", zip: "62704", phone: "+1 555-0199" },
+          preferences: ["Audio", "Wearables"],
+          created_at: new Date().toISOString()
         },
         {
           user_id: 2,
@@ -93,7 +94,9 @@ class PersistentDatabase {
           email: "ava@example.com",
           password: "customer123",
           role: "customer",
-          preferences: ["Electronics", "Fitness"]
+          address: { fullName: "Ava Johnson", street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+1 555-0144" },
+          preferences: ["Electronics", "Fitness"],
+          created_at: new Date().toISOString()
         },
         {
           user_id: 3,
@@ -101,7 +104,9 @@ class PersistentDatabase {
           email: "admin@smartshop.ai",
           password: "admin123",
           role: "admin",
-          preferences: ["All"]
+          address: { fullName: "System Administrator", street: "1 Infinite Loop", city: "Cupertino", state: "CA", zip: "95014", phone: "+1 555-0100" },
+          preferences: ["All"],
+          created_at: new Date().toISOString()
         }
       ];
       localStorage.setItem("smartshop_db_users", JSON.stringify(defaultUsers));
@@ -113,38 +118,35 @@ class PersistentDatabase {
           {
             id: 101,
             sender: "no-reply@smartshop.ai",
-            subject: "Welcome to SmartShop AI!",
+            subject: "🎉 Welcome to SmartShop AI!",
             date: new Date().toLocaleDateString(),
             snippet: "Your account user@smartshop.ai has been created successfully. Explore personalized AI deals!"
-          },
-          {
-            id: 102,
-            sender: "orders@smartshop.ai",
-            subject: "Order Confirmation #ORD-8842",
-            date: new Date().toLocaleDateString(),
-            snippet: "Thank you for your order! Your AeroPods Max purchase has been processed."
           }
         ],
         "ava@example.com": [
           {
-            id: 103,
+            id: 102,
             sender: "no-reply@smartshop.ai",
-            subject: "Welcome to SmartShop AI!",
+            subject: "🎉 Welcome to SmartShop AI!",
             date: new Date().toLocaleDateString(),
             snippet: "Your account ava@example.com is active. Check out your personalized recommendations."
           }
         ],
         "admin@smartshop.ai": [
           {
-            id: 104,
+            id: 103,
             sender: "system@smartshop.ai",
-            subject: "Admin Access Granted",
+            subject: "⚡ Admin Access Granted",
             date: new Date().toLocaleDateString(),
-            snippet: "You have full administrator privileges to manage products, view metrics, and moderate reviews."
+            snippet: "You have full administrator privileges to view customer datasets, manage inventory, and monitor orders."
           }
         ]
       };
       localStorage.setItem("smartshop_db_emails", JSON.stringify(defaultEmails));
+    }
+
+    if (!localStorage.getItem("smartshop_db_orders")) {
+      localStorage.setItem("smartshop_db_orders", JSON.stringify([]));
     }
   }
 
@@ -160,6 +162,27 @@ class PersistentDatabase {
     localStorage.setItem("smartshop_db_users", JSON.stringify(users));
   }
 
+  getOrders() {
+    try {
+      return JSON.parse(localStorage.getItem("smartshop_db_orders")) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveOrders(orders) {
+    localStorage.setItem("smartshop_db_orders", JSON.stringify(orders));
+  }
+
+  addEmail(email, mailObj) {
+    try {
+      const emailsObj = JSON.parse(localStorage.getItem("smartshop_db_emails")) || {};
+      if (!emailsObj[email]) emailsObj[email] = [];
+      emailsObj[email].unshift(mailObj);
+      localStorage.setItem("smartshop_db_emails", JSON.stringify(emailsObj));
+    } catch (e) {}
+  }
+
   getEmails(email) {
     try {
       const emailsObj = JSON.parse(localStorage.getItem("smartshop_db_emails")) || {};
@@ -167,9 +190,9 @@ class PersistentDatabase {
         {
           id: Date.now(),
           sender: "no-reply@smartshop.ai",
-          subject: "Welcome to SmartShop AI!",
+          subject: "🎉 Welcome to SmartShop AI!",
           date: new Date().toLocaleDateString(),
-          snippet: `Welcome ${email}! Your account is active and synced with the database.`
+          snippet: `Welcome ${email}! Your account is active and saved in the database.`
         }
       ];
     } catch (e) {
@@ -190,58 +213,110 @@ class PersistentDatabase {
       email: userData.email,
       password: userData.password,
       role: "customer",
-      preferences: userData.preferences || ["General"]
+      address: userData.address || { fullName: userData.name || "SmartShop User", street: "", city: "", state: "", zip: "", phone: "" },
+      preferences: userData.preferences || ["General"],
+      created_at: new Date().toISOString()
     };
 
     users.push(newUser);
     this.saveUsers(users);
 
-    // Generate welcome mail
-    const emailsObj = JSON.parse(localStorage.getItem("smartshop_db_emails")) || {};
-    emailsObj[userData.email] = [
-      {
-        id: Date.now(),
-        sender: "welcome@smartshop.ai",
-        subject: "🎉 Welcome to SmartShop AI!",
-        date: new Date().toLocaleDateString(),
-        snippet: `Hello ${newUser.name}, thank you for registering (${newUser.email}). Your profile and preferences have been stored in the database!`
-      }
-    ];
-    localStorage.setItem("smartshop_db_emails", JSON.stringify(emailsObj));
+    this.addEmail(userData.email, {
+      id: Date.now(),
+      sender: "welcome@smartshop.ai",
+      subject: "🎉 Registration Successful & Account Active",
+      date: new Date().toLocaleDateString(),
+      snippet: `Hello ${newUser.name}, your registration for ${newUser.email} is complete. Your details are saved in the customer dataset!`
+    });
 
     return {
       token: `jwt-db-token-${newUser.user_id}-${Date.now()}`,
-      user: {
-        user_id: newUser.user_id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        preferences: newUser.preferences
-      }
+      user: newUser
     };
   }
 
   loginUser(email, password) {
     const users = this.getUsers();
-    const found = users.find(
+    let found = users.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
     );
 
     if (!found) {
-      // Allow fallback creation for seamless login demo if not existing
-      return this.registerUser({ email, password, name: email.split("@")[0] });
+      // Auto-register demo logins dynamically
+      const auth = this.registerUser({ email, password, name: email.split("@")[0] });
+      found = auth.user;
     }
+
+    // Trigger Login Notification Email into user inbox
+    this.addEmail(found.email, {
+      id: Date.now(),
+      sender: "security@smartshop.ai",
+      subject: "🔐 Security Alert: Successful Login Detected",
+      date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      snippet: `Hello ${found.name}, a new login to your account (${found.email}) was recorded from your current device. Welcome back!`
+    });
 
     return {
       token: `jwt-db-token-${found.user_id}-${Date.now()}`,
-      user: {
-        user_id: found.user_id,
-        name: found.name,
-        email: found.email,
-        role: found.role,
-        preferences: found.preferences
-      }
+      user: found
     };
+  }
+
+  createOrder(userEmail, orderData) {
+    const orders = this.getOrders();
+    const users = this.getUsers();
+    const currentUser = users.find((u) => u.email.toLowerCase() === userEmail.toLowerCase()) || { user_id: 1, email: userEmail, name: "Customer" };
+
+    if (orderData.address) {
+      currentUser.address = orderData.address;
+      this.saveUsers(users);
+    }
+
+    const newOrder = {
+      order_id: orders.length + 101,
+      user_id: currentUser.user_id,
+      user_email: userEmail,
+      user_name: currentUser.name,
+      items: orderData.items || [],
+      total_amount: orderData.total_amount || 199.99,
+      shipping_address: orderData.address || currentUser.address || {},
+      status: "Processing & Order Confirmed",
+      created_at: new Date().toISOString()
+    };
+
+    orders.unshift(newOrder);
+    this.saveOrders(orders);
+
+    const addrStr = newOrder.shipping_address.street ? `${newOrder.shipping_address.street}, ${newOrder.shipping_address.city}` : "Saved Shipping Address";
+    this.addEmail(userEmail, {
+      id: Date.now(),
+      sender: "fulfillment@smartshop.ai",
+      subject: `📦 Order Confirmation #ORD-${newOrder.order_id}`,
+      date: new Date().toLocaleDateString(),
+      snippet: `Thank you for your order! Your purchase of $${newOrder.total_amount.toFixed(2)} is confirmed and scheduled for delivery to: ${addrStr}.`
+    });
+
+    return newOrder;
+  }
+
+  getCustomerDataset() {
+    const users = this.getUsers();
+    const orders = this.getOrders();
+
+    return users.map((u) => {
+      const userOrders = orders.filter((o) => o.user_email?.toLowerCase() === u.email.toLowerCase() || o.user_id === u.user_id);
+      const totalSpent = userOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      return {
+        user_id: u.user_id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        address: u.address || {},
+        orders_count: userOrders.length,
+        total_spent: totalSpent,
+        created_at: u.created_at || new Date().toISOString()
+      };
+    });
   }
 }
 
@@ -249,6 +324,9 @@ const db = new PersistentDatabase();
 
 export async function api(path, options = {}) {
   const token = localStorage.getItem("smartshop_token");
+  const userStr = localStorage.getItem("smartshop_user");
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -263,10 +341,9 @@ export async function api(path, options = {}) {
       return data;
     }
   } catch (err) {
-    console.warn(`API call to ${path} using offline persistent database.`);
+    console.warn(`API call to ${path} using persistent database.`);
   }
 
-  // Database Handler & Router
   if (path.includes("/auth/login")) {
     const body = options.body ? JSON.parse(options.body) : {};
     return db.loginUser(body.email || "user@smartshop.ai", body.password || "password123");
@@ -278,9 +355,35 @@ export async function api(path, options = {}) {
   }
 
   if (path.includes("/emails")) {
-    const userStr = localStorage.getItem("smartshop_user");
-    const currentUser = userStr ? JSON.parse(userStr) : null;
     return db.getEmails(currentUser ? currentUser.email : "user@smartshop.ai");
+  }
+
+  if (path.includes("/orders") && options.method === "POST") {
+    const body = options.body ? JSON.parse(options.body) : {};
+    return db.createOrder(currentUser ? currentUser.email : "user@smartshop.ai", body);
+  }
+
+  if (path.includes("/admin/customers") || path.includes("/admin/users")) {
+    return db.getCustomerDataset();
+  }
+
+  if (path.includes("/admin/overview")) {
+    const dataset = db.getCustomerDataset();
+    const orders = db.getOrders();
+    return {
+      revenue: (orders.reduce((sum, o) => sum + (o.total_amount || 0), 1250)).toFixed(2),
+      users: dataset.length,
+      orders: orders.length + 15,
+      products: MOCK_PRODUCTS.length,
+      categorySales: [
+        { category: "Audio", value: 4500 },
+        { category: "Wearables", value: 3800 },
+        { category: "Laptops", value: 5200 },
+        { category: "Tablets", value: 2400 }
+      ],
+      recommendationMetrics: { ctr: 4.8, conversionLift: 18.5, coverage: 94.2, model: "Hybrid Collaborative & Content Filtering" },
+      lowStock: [MOCK_PRODUCTS[0], MOCK_PRODUCTS[2]]
+    };
   }
 
   if (path.includes("/ai/trending") || path.includes("/ai/recommendations") || path.includes("/products")) {
@@ -291,12 +394,8 @@ export async function api(path, options = {}) {
     return MOCK_CATEGORIES;
   }
 
-  if (path.includes("/orders") || path.includes("/wishlist") || path.includes("/cart")) {
-    return [];
-  }
-
-  if (path.includes("/admin/metrics")) {
-    return { total_sales: 15480.50, orders_count: 142, ctr: 4.8, conversion_rate: 3.2 };
+  if (path.includes("/orders")) {
+    return db.getOrders();
   }
 
   return [];
