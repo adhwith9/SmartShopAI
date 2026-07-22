@@ -57,29 +57,29 @@ jobs:
       - name: Rename and Move APK
         run: |
           mkdir -p apk_output
-          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk apk_output/SmartShopAI-v1.0.1.apk
-          echo "APK successfully generated at apk_output/SmartShopAI-v1.0.1.apk"
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk apk_output/SmartShopAI-v1.0.2.apk
+          echo "APK successfully generated at apk_output/SmartShopAI-v1.0.2.apk"
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmartShopAI-Android-APK
-          path: apk_output/SmartShopAI-v1.0.1.apk
+          path: apk_output/SmartShopAI-v1.0.2.apk
 
       - name: Create or Update GitHub Release with Downloadable APK
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1-apk
-          name: "SmartShop AI Android APK v1.0.1"
+          tag_name: v1.0.2-apk
+          name: "SmartShop AI Android APK v1.0.2"
           body: |
-            ### 📱 SmartShop AI Native Android App (.apk)
+            ### 📱 SmartShop AI Native Android App (.apk) - Fixed WebView Asset Loading
             
             Download and install the official SmartShop AI Android application directly onto your Android device!
             
-            **File Name**: `SmartShopAI-v1.0.1.apk`  
+            **File Name**: `SmartShopAI-v1.0.2.apk`  
             **Build Number**: `${{ github.run_number }}`
           files: |
-            apk_output/SmartShopAI-v1.0.1.apk
+            apk_output/SmartShopAI-v1.0.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

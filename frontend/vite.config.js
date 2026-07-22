@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Target base path for GitHub Pages subfolder deployment (adhwith9.github.io/SmartShopAI/)
+// Use relative base path "./" for compatibility with both Capacitor Android APK (file://) and GitHub Pages
 export default defineConfig({
-  base: "/SmartShopAI/",
+  base: "./",
   plugins: [react()],
   server: {
     proxy: {
