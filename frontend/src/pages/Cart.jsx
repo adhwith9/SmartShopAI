@@ -1,42 +1,83 @@
 import { useState } from "react";
-import { MapPin, Phone, User, CheckCircle, Truck } from "lucide-react";
-import { api } from "../lib/api";
+import { MapPin, Phone, User, CheckCircle, Truck, Trash2, Plus, Minus, CreditCard, Tag } from "lucide-react";
+import { api, MOCK_COUPONS } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Cart({ setPage }) {
   const { cart, setCart, user } = useApp();
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const [step, setStep] = useState("cart"); // "cart" | "address" | "payment" | "success"
 
-  const [step, setStep] = useState("cart"); // "cart" | "address" | "success"
   const [address, setAddress] = useState({
-    fullName: user?.name || "",
-    email: user?.email || "",
+    fullName: user?.name || "SmartShop Customer",
+    email: user?.email || "customer@smartshop.ai",
     street: user?.address?.street || "742 Evergreen Terrace",
     city: user?.address?.city || "Springfield",
     state: user?.address?.state || "IL",
     zip: user?.address?.zip || "62704",
     phone: user?.address?.phone || "+1 (555) 019-2831"
   });
-  const [loading, setLoading] = useState(false);
 
-  async function handleProceed() {
-    if (!user) return setPage("auth");
-    setStep("address");
+  const [couponCode, setCouponCode] = useState("");
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [couponMsg, setCouponMsg] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [loading, setLoading] = useState(false);
+  const [confirmedOrder, setConfirmedOrder] = useState(null);
+
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountAmount = (subtotal * discountPercent) / 100;
+  const shippingFee = subtotal > 50 || !cart.length ? 0 : 9.99;
+  const taxAmount = (subtotal - discountAmount) * 0.08;
+  const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee + taxAmount);
+
+  function updateQuantity(productId, delta) {
+    setCart((items) =>
+      items
+        .map((item) => {
+          if (item.product_id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean)
+    );
   }
 
-  async function submitOrder(e) {
+  function removeItem(productId) {
+    setCart((items) => items.filter((item) => item.product_id !== productId));
+  }
+
+  function applyCoupon(e) {
     e.preventDefault();
+    const code = couponCode.trim().toUpperCase();
+    const found = MOCK_COUPONS[code];
+    if (found) {
+      setDiscountPercent(found.discountPercent || 20);
+      setCouponMsg(`✅ Applied "${code}" - ${found.description}`);
+    } else {
+      setCouponMsg("❌ Invalid coupon code. Try SMARTSHOP20");
+    }
+  }
+
+  async function handleConfirmOrder() {
+    if (!user) return setPage("auth");
     setLoading(true);
 
     try {
-      await api("/orders", {
+      const order = await api("/orders", {
         method: "POST",
         body: JSON.stringify({
-          items: cart.map(({ product_id, quantity, price }) => ({ product_id, quantity, price })),
-          total_amount: total,
-          address: address
+          items: cart.map(({ product_id, quantity, price, name }) => ({ product_id, quantity, price, name })),
+          subtotal,
+          discount: discountAmount,
+          total_amount: grandTotal,
+          payment_method: paymentMethod === "stripe" ? "Stripe (Test Mode)" : "Razorpay (Test Mode)",
+          address
         })
       });
+
+      setConfirmedOrder(order);
       setCart([]);
       setStep("success");
     } catch (err) {
@@ -51,48 +92,83 @@ export default function Cart({ setPage }) {
       <div className="section-title">
         <div>
           <p>Checkout Pipeline</p>
-          <h2>{step === "address" ? "Shipping Address & Customer Details" : step === "success" ? "Order Confirmed!" : "Shopping Cart"}</h2>
+          <h2>{step === "address" ? "Shipping Address" : step === "payment" ? "Select Payment Method" : step === "success" ? "Order Confirmed!" : "Shopping Cart"}</h2>
         </div>
-        <span className="font-bold text-mint">${total.toFixed(2)}</span>
+        <span className="font-bold text-mint">${grandTotal.toFixed(2)}</span>
       </div>
 
       {step === "cart" && (
-        <div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Cart Items List */}
           <div className="space-y-3">
             {!cart.length ? (
-              <div className="rounded border border-black/10 bg-white p-8 text-center dark:border-white/10 dark:bg-slate-900">
+              <div className="rounded-xl border border-black/10 bg-white p-8 text-center dark:border-white/10 dark:bg-slate-900">
                 <p className="text-slate-500">Your shopping cart is empty.</p>
                 <button className="btn-primary mt-4" onClick={() => setPage("shop")}>Browse Shop Catalog</button>
               </div>
             ) : (
               cart.map((item) => (
-                <div key={item.product_id} className="row-card">
-                  <img src={item.image} className="h-14 w-14 rounded object-cover" alt={item.name} />
-                  <div className="flex-1">
-                    <strong className="block">{item.name}</strong>
-                    <span className="text-xs text-slate-500">{item.category}</span>
+                <div key={item.product_id} className="row-card flex items-center justify-between gap-3">
+                  <img src={item.image} className="h-16 w-16 rounded-lg object-cover" alt={item.name} />
+                  <div className="flex-1 min-w-0">
+                    <strong className="block text-sm truncate">{item.name}</strong>
+                    <span className="text-xs text-slate-500">${item.price.toFixed(2)} each</span>
                   </div>
-                  <span className="font-semibold">Qty {item.quantity}</span>
-                  <span className="font-bold text-mint">${(item.price * item.quantity).toFixed(2)}</span>
+
+                  <div className="flex items-center gap-2 rounded border border-black/15 px-2 py-1 dark:border-white/15">
+                    <button onClick={() => updateQuantity(item.product_id, -1)} className="p-0.5 hover:text-mint"><Minus size={14} /></button>
+                    <span className="text-xs font-bold w-5 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.product_id, 1)} className="p-0.5 hover:text-mint"><Plus size={14} /></button>
+                  </div>
+
+                  <span className="font-bold text-mint text-sm w-20 text-right">${(item.price * item.quantity).toFixed(2)}</span>
+                  <button onClick={() => removeItem(item.product_id)} className="text-coral hover:opacity-75 p-1"><Trash2 size={16} /></button>
                 </div>
               ))
             )}
           </div>
 
+          {/* Cart Summary Panel */}
           {cart.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <button className="btn-primary" onClick={handleProceed}>
-                Proceed to Shipping Address <Truck size={18} />
+            <aside className="h-fit rounded-xl border border-black/10 bg-white p-5 shadow-sm space-y-4 dark:border-white/10 dark:bg-slate-900">
+              <h3 className="font-bold border-b border-black/10 pb-3 dark:border-white/10">Order Summary</h3>
+
+              <form onSubmit={applyCoupon} className="space-y-2">
+                <label className="label text-xs">Coupon Code (Try SMARTSHOP20)</label>
+                <div className="flex gap-2">
+                  <input
+                    className="input text-xs uppercase"
+                    placeholder="SMARTSHOP20"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                  />
+                  <button type="submit" className="btn-secondary text-xs px-3">Apply</button>
+                </div>
+                {couponMsg && <p className="text-[11px] font-semibold">{couponMsg}</p>}
+              </form>
+
+              <div className="space-y-2 text-xs border-t border-black/10 pt-3 dark:border-white/10">
+                <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                {discountAmount > 0 && <div className="flex justify-between text-mint font-bold"><span>Discount (20%)</span><span>-${discountAmount.toFixed(2)}</span></div>}
+                <div className="flex justify-between"><span>Estimated Tax (8%)</span><span>${taxAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Shipping Fee</span><span>{shippingFee === 0 ? "FREE" : `$${shippingFee.toFixed(2)}`}</span></div>
+                <div className="flex justify-between text-sm font-black border-t border-black/10 pt-2 text-mint dark:border-white/10">
+                  <span>Grand Total</span><span>${grandTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <button className="btn-primary w-full justify-center" onClick={() => user ? setStep("address") : setPage("auth")}>
+                Proceed to Shipping <Truck size={16} />
               </button>
-            </div>
+            </aside>
           )}
         </div>
       )}
 
       {step === "address" && (
-        <form onSubmit={submitOrder} className="rounded border border-black/10 bg-white p-6 shadow-md dark:border-white/10 dark:bg-slate-900">
-          <h3 className="text-lg font-bold">Fill Shipping Address & Contact Details</h3>
-          <p className="mt-1 text-sm text-slate-500">Every customer detail is stored in the database dataset for fulfillment & tracking.</p>
+        <div className="rounded-xl border border-black/10 bg-white p-6 shadow-md dark:border-white/10 dark:bg-slate-900">
+          <h3 className="text-lg font-bold">Fill Shipping Address Details</h3>
+          <p className="text-xs text-slate-500 mt-1">Saved to persistent customer dataset for tracking.</p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
@@ -104,7 +180,7 @@ export default function Cart({ setPage }) {
             </div>
 
             <div>
-              <label className="label">Email Address (Mail Receipt Destination)</label>
+              <label className="label">Email Address (Order Confirmation Destination)</label>
               <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
                 <input required type="email" className="w-full bg-transparent text-sm outline-none" value={address.email} onChange={(e) => setAddress({ ...address, email: e.target.value })} />
               </div>
@@ -126,41 +202,74 @@ export default function Cart({ setPage }) {
               </div>
             </div>
 
-            <div>
-              <label className="label">City</label>
-              <input required className="input mt-1" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
+            <div><label className="label">City</label><input required className="input mt-1" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} /></div>
+            <div><label className="label">State / Province</label><input required className="input mt-1" value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} /></div>
+            <div><label className="label">ZIP Code</label><input required className="input mt-1" value={address.zip} onChange={(e) => setAddress({ ...address, zip: e.target.value })} /></div>
+          </div>
+
+          <div className="mt-6 flex justify-between border-t border-black/10 pt-4 dark:border-white/10">
+            <button className="btn-secondary" onClick={() => setStep("cart")}>Back to Cart</button>
+            <button className="btn-primary" onClick={() => setStep("payment")}>Continue to Payment <CreditCard size={16} /></button>
+          </div>
+        </div>
+      )}
+
+      {step === "payment" && (
+        <div className="rounded-xl border border-black/10 bg-white p-6 shadow-md dark:border-white/10 dark:bg-slate-900 space-y-5">
+          <h3 className="text-lg font-bold">Select Payment Gateway</h3>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "stripe" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("stripe")}
+            >
+              <strong className="block text-sm font-bold">Stripe Payment Gateway (Test Mode)</strong>
+              <p className="text-xs text-slate-500 mt-1">Accept Visa, Mastercard, Apple Pay & International Cards</p>
             </div>
 
-            <div>
-              <label className="label">State / Province</label>
-              <input required className="input mt-1" value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} />
-            </div>
-
-            <div>
-              <label className="label">ZIP / Postal Code</label>
-              <input required className="input mt-1" value={address.zip} onChange={(e) => setAddress({ ...address, zip: e.target.value })} />
+            <div
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "razorpay" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("razorpay")}
+            >
+              <strong className="block text-sm font-bold">Razorpay Payment Gateway (Test Mode)</strong>
+              <p className="text-xs text-slate-500 mt-1">Accept UPI, NetBanking, Debit Cards & Wallets</p>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-4 dark:border-white/10">
-            <button type="button" className="btn-secondary" onClick={() => setStep("cart")}>Back to Cart</button>
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "Processing Database Order..." : "Confirm & Save Order to Database"}
+          <div className="rounded bg-slate-100 p-4 text-xs dark:bg-slate-800 space-y-1">
+            <p><strong>Shipping to:</strong> {address.fullName}, {address.street}, {address.city}, {address.state} {address.zip}</p>
+            <p><strong>Total Payable:</strong> <span className="font-bold text-mint text-sm">${grandTotal.toFixed(2)}</span></p>
+          </div>
+
+          <div className="flex justify-between border-t border-black/10 pt-4 dark:border-white/10">
+            <button className="btn-secondary" onClick={() => setStep("address")}>Back</button>
+            <button className="btn-primary" disabled={loading} onClick={handleConfirmOrder}>
+              {loading ? "Verifying & Saving Order..." : `Pay $${grandTotal.toFixed(2)} & Complete Order`}
             </button>
           </div>
-        </form>
+        </div>
       )}
 
       {step === "success" && (
-        <div className="rounded border border-mint/30 bg-mint/10 p-8 text-center">
-          <CheckCircle size={48} className="mx-auto text-mint mb-3" />
-          <h3 className="text-2xl font-black">Order Confirmed & Saved to Database!</h3>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-            A confirmation email has been sent to <strong>{address.email}</strong> and saved in your inbox.
+        <div className="rounded-xl border border-mint/30 bg-mint/10 p-8 text-center space-y-4">
+          <CheckCircle size={52} className="mx-auto text-mint" />
+          <h3 className="text-3xl font-black">Order Confirmed & Payment Verified!</h3>
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            A confirmation receipt has been delivered to <strong>{address.email}</strong> and saved in your inbox.
           </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <button className="btn-primary" onClick={() => setPage("profile")}>View Inbox & Profile</button>
-            <button className="btn-secondary" onClick={() => setPage("orders")}>View All Orders</button>
+
+          {confirmedOrder && (
+            <div className="mx-auto max-w-md rounded bg-white p-4 text-left text-xs shadow dark:bg-slate-900 space-y-1">
+              <p><strong>Order ID:</strong> #{confirmedOrder.order_id}</p>
+              <p><strong>Tracking Number:</strong> <span className="font-mono font-bold text-mint">{confirmedOrder.tracking_number}</span></p>
+              <p><strong>Estimated Delivery:</strong> {confirmedOrder.estimated_delivery}</p>
+              <p><strong>Total Amount:</strong> ${confirmedOrder.total_amount.toFixed(2)}</p>
+            </div>
+          )}
+
+          <div className="flex justify-center gap-3 pt-2">
+            <button className="btn-primary" onClick={() => setPage("profile")}>View Inbox & Tracking</button>
+            <button className="btn-secondary" onClick={() => setPage("shop")}>Continue Shopping</button>
           </div>
         </div>
       )}

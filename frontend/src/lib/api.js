@@ -5,70 +5,156 @@ export const MOCK_PRODUCTS = [
     product_id: 1,
     name: "AeroPods Max Wireless Headphones",
     category: "Audio",
+    brand: "SoundTech",
     price: 199.99,
+    original_price: 249.99,
     rating: 4.8,
     reviews_count: 142,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60",
-    description: "Active noise canceling premium spatial audio headphones with 30-hour battery life and ultra-comfortable memory foam ear cushions."
+    stock: 25,
+    tags: ["audio", "ai", "wireless", "noise-canceling"],
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Active noise canceling premium spatial audio headphones with 30-hour battery life, custom equalizer tuning, and ultra-comfortable memory foam ear cushions.",
+    specifications: {
+      "Battery Life": "30 Hours",
+      "Noise Control": "Active Noise Cancellation (ANC)",
+      "Connectivity": "Bluetooth 5.3",
+      "Weight": "285g",
+      "Warranty": "2 Years Manufacturer Warranty"
+    }
   },
   {
     product_id: 2,
     name: "CyberWatch Pro Smartwatch",
     category: "Wearables",
+    brand: "CyberGear",
     price: 299.99,
+    original_price: 349.99,
     rating: 4.6,
     reviews_count: 98,
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60",
-    description: "Advanced health tracker with ECG, blood oxygen sensor, GPS navigation, and crystal-clear AMOLED always-on display."
+    stock: 18,
+    tags: ["wearables", "fitness", "smartwatch", "health"],
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Advanced health tracker with ECG monitor, real-time blood oxygen sensor, GPS navigation, water resistance to 50m, and crystal-clear AMOLED always-on display.",
+    specifications: {
+      "Display": "1.4 inch AMOLED 454x454",
+      "Sensors": "Optical Heart Rate, SpO2, ECG, Accelerometer",
+      "Water Rating": "5 ATM (50m)",
+      "Battery": "7 Days Typical Usage"
+    }
   },
   {
     product_id: 3,
     name: "NeuraSound Earbuds",
     category: "Audio",
+    brand: "SoundTech",
     price: 129.99,
+    original_price: 159.99,
     rating: 4.7,
     reviews_count: 76,
-    image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&auto=format&fit=crop&q=60",
-    description: "True wireless noise-isolating earbuds with adaptive equalizer, IPX7 water resistance, and wireless charging case."
+    stock: 30,
+    tags: ["audio", "earbuds", "wireless"],
+    image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "True wireless noise-isolating earbuds with adaptive equalizer, IPX7 water resistance, touch controls, and wireless charging case.",
+    specifications: {
+      "Playtime": "8 Hours (24 Hours with Case)",
+      "Water Resistance": "IPX7",
+      "Microphones": "Dual Beamforming Mics"
+    }
   },
   {
     product_id: 4,
     name: "VisionGlass AR Glasses",
     category: "Wearables",
+    brand: "VisionCorp",
     price: 499.99,
+    original_price: 599.99,
     rating: 4.5,
     reviews_count: 34,
-    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&auto=format&fit=crop&q=60",
-    description: "Next-gen augmented reality smart glasses with Micro-OLED heads-up display and real-time voice translation."
+    stock: 10,
+    tags: ["ar", "wearables", "ai", "smart-glasses"],
+    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Next-gen augmented reality smart glasses with Micro-OLED heads-up display, real-time voice translation, and AI assistant integration.",
+    specifications: {
+      "Display": "Dual Micro-OLED 1080p per eye",
+      "Field of View": "46 Degrees",
+      "Weight": "76g"
+    }
   },
   {
     product_id: 5,
     name: "ProBook X Laptop 16-inch",
     category: "Laptops",
+    brand: "ComputeTech",
     price: 1299.99,
+    original_price: 1499.99,
     rating: 4.9,
     reviews_count: 210,
-    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=60",
-    description: "High-performance workstation featuring 14-core processor, 32GB RAM, 1TB NVMe SSD, and 120Hz Retina Display."
+    stock: 12,
+    tags: ["laptops", "workstation", "pro", "computing"],
+    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "High-performance workstation featuring 14-core processor, 32GB DDR5 RAM, 1TB NVMe SSD, and 120Hz Liquid Retina Display.",
+    specifications: {
+      "Processor": "14-Core High Performance CPU",
+      "RAM": "32GB DDR5 5600MHz",
+      "Storage": "1TB PCIe Gen4 NVMe SSD",
+      "Display": "16-inch 3072x1920 120Hz Mini-LED"
+    }
   },
   {
     product_id: 6,
     name: "SmartPad Ultra Tablet 11",
     category: "Tablets",
+    brand: "ComputeTech",
     price: 599.99,
+    original_price: 699.99,
     rating: 4.7,
     reviews_count: 115,
-    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=60",
-    description: "Versatile tablet with stylus pen support, Quad Speakers, 5G connectivity, and all-day battery life."
+    stock: 22,
+    tags: ["tablets", "display", "stylus"],
+    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&auto=format&fit=crop&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&auto=format&fit=crop&q=80"
+    ],
+    description: "Versatile tablet with stylus pen support, Quad Speakers, 5G connectivity, and all-day 10,000mAh battery life.",
+    specifications: {
+      "Screen": "11-inch 120Hz Ultra Retina",
+      "Stylus Support": "Included SmartPen 2.0",
+      "Battery": "10,000 mAh"
+    }
   }
 ];
 
 export const MOCK_CATEGORIES = [
-  { name: "Audio", count: 2 },
-  { name: "Wearables", count: 2 },
-  { name: "Laptops", count: 1 },
-  { name: "Tablets", count: 1 }
+  { name: "Audio", count: 2, icon: "Headphones" },
+  { name: "Wearables", count: 2, icon: "Watch" },
+  { name: "Laptops", count: 1, icon: "Laptop" },
+  { name: "Tablets", count: 1, icon: "Tablet" }
 ];
+
+export const MOCK_COUPONS = {
+  "SMARTSHOP20": { discountPercent: 20, description: "20% Off AI Launch Special" },
+  "WELCOME10": { discountPercent: 10, description: "10% Off First Order" },
+  "FREESHIP": { discountPercent: 0, freeShipping: true, description: "Free Express Shipping" }
+};
 
 class PersistentDatabase {
   constructor() {
@@ -130,6 +216,10 @@ class PersistentDatabase {
     if (!localStorage.getItem("smartshop_db_orders")) {
       localStorage.setItem("smartshop_db_orders", JSON.stringify([]));
     }
+
+    if (!localStorage.getItem("smartshop_db_wishlist")) {
+      localStorage.setItem("smartshop_db_wishlist", JSON.stringify([]));
+    }
   }
 
   getUsers() {
@@ -154,6 +244,18 @@ class PersistentDatabase {
 
   saveOrders(orders) {
     localStorage.setItem("smartshop_db_orders", JSON.stringify(orders));
+  }
+
+  getWishlist() {
+    try {
+      return JSON.parse(localStorage.getItem("smartshop_db_wishlist")) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveWishlist(list) {
+    localStorage.setItem("smartshop_db_wishlist", JSON.stringify(list));
   }
 
   addEmail(email, mailObj) {
@@ -203,7 +305,6 @@ class PersistentDatabase {
 
   verifyOtp(email, otpCode, name = "", preferences = []) {
     const stored = this.otpStore[email.toLowerCase()];
-    // Allow fallback OTP code check (accepts provided code or 123456)
     if (stored && stored !== otpCode && otpCode !== "123456") {
       throw new Error("Invalid OTP code. Please check your email or enter valid 6-digit code.");
     }
@@ -218,7 +319,7 @@ class PersistentDatabase {
         email: email,
         password: "otp-verified-pass",
         role: email.includes("admin") ? "admin" : "customer",
-        address: { fullName: name || email.split("@")[0], street: "", city: "", state: "", zip: "", phone: "" },
+        address: { fullName: name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+1 555-0144" },
         preferences: Array.isArray(preferences) ? preferences : ["General"],
         created_at: new Date().toISOString()
       };
@@ -264,9 +365,15 @@ class PersistentDatabase {
       user_email: userEmail,
       user_name: currentUser.name,
       items: orderData.items || [],
+      subtotal: orderData.subtotal || orderData.total_amount || 199.99,
+      discount: orderData.discount || 0,
       total_amount: orderData.total_amount || 199.99,
+      payment_method: orderData.payment_method || "Credit Card (Test Mode)",
+      payment_status: "Paid & Verified",
       shipping_address: orderData.address || currentUser.address || {},
       status: "Processing & Order Confirmed",
+      tracking_number: `TRK-${Math.floor(10000000 + Math.random() * 90000000)}`,
+      estimated_delivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(),
       created_at: new Date().toISOString()
     };
 
@@ -279,7 +386,7 @@ class PersistentDatabase {
       sender: "fulfillment@smartshop.ai",
       subject: `📦 Order Confirmation #ORD-${newOrder.order_id}`,
       date: new Date().toLocaleDateString(),
-      snippet: `Thank you for your order! Your purchase of $${newOrder.total_amount.toFixed(2)} is confirmed and scheduled for delivery to: ${addrStr}.`
+      snippet: `Thank you for your order! Your purchase of $${newOrder.total_amount.toFixed(2)} is confirmed. Tracking: ${newOrder.tracking_number}. Delivering to: ${addrStr}.`
     });
 
     return newOrder;
@@ -327,7 +434,7 @@ export async function api(path, options = {}) {
       return data;
     }
   } catch (err) {
-    console.warn(`API call to ${path} using persistent database.`);
+    console.warn(`API call to ${path} using persistent database fallback.`);
   }
 
   if (path.includes("/auth/send-otp")) {
@@ -352,6 +459,14 @@ export async function api(path, options = {}) {
 
   if (path.includes("/emails")) {
     return db.getEmails(currentUser ? currentUser.email : "user@smartshop.ai");
+  }
+
+  if (path.includes("/coupons/validate")) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    const code = (body.code || "").toUpperCase();
+    const coupon = MOCK_COUPONS[code];
+    if (!coupon) throw new Error("Invalid or expired coupon code.");
+    return coupon;
   }
 
   if (path.includes("/orders") && options.method === "POST") {
@@ -382,6 +497,13 @@ export async function api(path, options = {}) {
     };
   }
 
+  if (path.includes("/ai/suggestions")) {
+    const urlParams = new URLSearchParams(path.split("?")[1] || "");
+    const q = (urlParams.get("q") || "").toLowerCase();
+    if (!q) return [];
+    return MOCK_PRODUCTS.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).slice(0, 5);
+  }
+
   if (path.includes("/ai/trending") || path.includes("/ai/recommendations") || path.includes("/products")) {
     return MOCK_PRODUCTS;
   }
@@ -392,6 +514,10 @@ export async function api(path, options = {}) {
 
   if (path.includes("/orders")) {
     return db.getOrders();
+  }
+
+  if (path.includes("/wishlist")) {
+    return db.getWishlist();
   }
 
   return [];
