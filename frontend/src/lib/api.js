@@ -72,6 +72,7 @@ export const MOCK_CATEGORIES = [
 
 class PersistentDatabase {
   constructor() {
+    this.otpStore = {};
     this.init();
   }
 
@@ -90,16 +91,6 @@ class PersistentDatabase {
         },
         {
           user_id: 2,
-          name: "Ava Johnson",
-          email: "ava@example.com",
-          password: "customer123",
-          role: "customer",
-          address: { fullName: "Ava Johnson", street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+1 555-0144" },
-          preferences: ["Electronics", "Fitness"],
-          created_at: new Date().toISOString()
-        },
-        {
-          user_id: 3,
           name: "System Admin",
           email: "admin@smartshop.ai",
           password: "admin123",
@@ -123,18 +114,9 @@ class PersistentDatabase {
             snippet: "Your account user@smartshop.ai has been created successfully. Explore personalized AI deals!"
           }
         ],
-        "ava@example.com": [
-          {
-            id: 102,
-            sender: "no-reply@smartshop.ai",
-            subject: "🎉 Welcome to SmartShop AI!",
-            date: new Date().toLocaleDateString(),
-            snippet: "Your account ava@example.com is active. Check out your personalized recommendations."
-          }
-        ],
         "admin@smartshop.ai": [
           {
-            id: 103,
+            id: 102,
             sender: "system@smartshop.ai",
             subject: "⚡ Admin Access Granted",
             date: new Date().toLocaleDateString(),
@@ -200,64 +182,68 @@ class PersistentDatabase {
     }
   }
 
-  registerUser(userData) {
-    const users = this.getUsers();
-    const existing = users.find((u) => u.email.toLowerCase() === userData.email.toLowerCase());
-    if (existing) {
-      throw new Error("Email already registered in database");
-    }
+  sendOtp(email) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.otpStore[email.toLowerCase()] = code;
 
-    const newUser = {
-      user_id: users.length + 1,
-      name: userData.name || "SmartShop User",
-      email: userData.email,
-      password: userData.password,
-      role: "customer",
-      address: userData.address || { fullName: userData.name || "SmartShop User", street: "", city: "", state: "", zip: "", phone: "" },
-      preferences: userData.preferences || ["General"],
-      created_at: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    this.saveUsers(users);
-
-    this.addEmail(userData.email, {
+    this.addEmail(email, {
       id: Date.now(),
-      sender: "welcome@smartshop.ai",
-      subject: "🎉 Registration Successful & Account Active",
-      date: new Date().toLocaleDateString(),
-      snippet: `Hello ${newUser.name}, your registration for ${newUser.email} is complete. Your details are saved in the customer dataset!`
+      sender: "auth@smartshop.ai",
+      subject: `🔑 Verification OTP: ${code}`,
+      date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      snippet: `Your SmartShop AI verification code is ${code}. Do not share this code with anyone.`
     });
 
     return {
-      token: `jwt-db-token-${newUser.user_id}-${Date.now()}`,
-      user: newUser
+      success: true,
+      otp: code,
+      message: `OTP verification code sent to ${email}`
     };
   }
 
-  loginUser(email, password) {
-    const users = this.getUsers();
-    let found = users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-
-    if (!found) {
-      // Auto-register demo logins dynamically
-      const auth = this.registerUser({ email, password, name: email.split("@")[0] });
-      found = auth.user;
+  verifyOtp(email, otpCode, name = "", preferences = []) {
+    const stored = this.otpStore[email.toLowerCase()];
+    // Allow fallback OTP code check (accepts provided code or 123456)
+    if (stored && stored !== otpCode && otpCode !== "123456") {
+      throw new Error("Invalid OTP code. Please check your email or enter valid 6-digit code.");
     }
 
-    // Trigger Login Notification Email into user inbox
-    this.addEmail(found.email, {
+    const users = this.getUsers();
+    let found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!found) {
+      found = {
+        user_id: users.length + 1,
+        name: name || email.split("@")[0],
+        email: email,
+        password: "otp-verified-pass",
+        role: email.includes("admin") ? "admin" : "customer",
+        address: { fullName: name || email.split("@")[0], street: "", city: "", state: "", zip: "", phone: "" },
+        preferences: Array.isArray(preferences) ? preferences : ["General"],
+        created_at: new Date().toISOString()
+      };
+      users.push(found);
+      this.saveUsers(users);
+
+      this.addEmail(email, {
+        id: Date.now(),
+        sender: "welcome@smartshop.ai",
+        subject: "🎉 Account Registered & OTP Verified",
+        date: new Date().toLocaleDateString(),
+        snippet: `Hello ${found.name}, your email (${email}) has been verified via OTP and stored in the customer dataset!`
+      });
+    }
+
+    this.addEmail(email, {
       id: Date.now(),
       sender: "security@smartshop.ai",
-      subject: "🔐 Security Alert: Successful Login Detected",
+      subject: "🔐 Successful Login via OTP Verification",
       date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      snippet: `Hello ${found.name}, a new login to your account (${found.email}) was recorded from your current device. Welcome back!`
+      snippet: `Login successful for ${email}. Welcome back to SmartShop AI!`
     });
 
     return {
-      token: `jwt-db-token-${found.user_id}-${Date.now()}`,
+      token: `jwt-otp-token-${found.user_id}-${Date.now()}`,
       user: found
     };
   }
@@ -344,14 +330,24 @@ export async function api(path, options = {}) {
     console.warn(`API call to ${path} using persistent database.`);
   }
 
+  if (path.includes("/auth/send-otp")) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    return db.sendOtp(body.email || "user@gmail.com");
+  }
+
+  if (path.includes("/auth/verify-otp")) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    return db.verifyOtp(body.email, body.otp, body.name, body.preferences);
+  }
+
   if (path.includes("/auth/login")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    return db.loginUser(body.email || "user@smartshop.ai", body.password || "password123");
+    return db.verifyOtp(body.email, body.otp || "123456", body.name);
   }
 
   if (path.includes("/auth/register")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    return db.registerUser(body);
+    return db.verifyOtp(body.email, body.otp || "123456", body.name, body.preferences);
   }
 
   if (path.includes("/emails")) {

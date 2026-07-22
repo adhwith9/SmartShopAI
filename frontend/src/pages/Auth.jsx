@@ -1,39 +1,158 @@
 import { useState } from "react";
+import { Mail, KeyRound, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Auth({ setPage }) {
-  const { login, register } = useApp();
-  const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ name: "", email: "ava@example.com", password: "customer123", preferences: "electronics,fitness" });
+  const { setCart } = useApp();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState("email"); // "email" | "otp"
+  const [sentOtpCode, setSentOtpCode] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function submit(event) {
-    event.preventDefault();
+  async function handleSendOtp(e) {
+    e.preventDefault();
     setError("");
+    if (!email || !email.includes("@")) {
+      return setError("Please enter a valid email address.");
+    }
+    setLoading(true);
+
     try {
-      if (mode === "login") await login(form.email, form.password);
-      else await register({ ...form, preferences: form.preferences.split(",").map((p) => p.trim()) });
-      setPage("home");
+      const res = await api("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ email })
+      });
+      setSentOtpCode(res.otp || "742918");
+      setInfoMsg(`🔑 Verification OTP sent to ${email}. Check code below!`);
+      setStep("otp");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to send OTP code.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setError("");
+    if (!otp || otp.length < 4) {
+      return setError("Please enter the 6-digit verification code.");
+    }
+    setLoading(true);
+
+    try {
+      const res = await api("/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, otp, name })
+      });
+
+      localStorage.setItem("smartshop_token", res.token);
+      localStorage.setItem("smartshop_user", JSON.stringify(res.user));
+      window.location.reload(); // Refresh app context state cleanly
+    } catch (err) {
+      setError(err.message || "OTP verification failed.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <main className="grid min-h-[72vh] place-items-center px-4 py-10">
-      <form onSubmit={submit} className="w-full max-w-md rounded border border-black/10 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-slate-900">
-        <h1 className="text-2xl font-black">{mode === "login" ? "Welcome back" : "Create your profile"}</h1>
-        <p className="mt-2 text-sm text-slate-500">Customer demo: ava@example.com / customer123. Admin demo: admin@smartshop.ai / admin123.</p>
-        {mode === "register" && <input className="input mt-5" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />}
-        <input className="input mt-3" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input className="input mt-3" type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        {mode === "register" && <input className="input mt-3" placeholder="Preferences, comma separated" value={form.preferences} onChange={(e) => setForm({ ...form, preferences: e.target.value })} />}
-        {error && <p className="mt-3 text-sm font-semibold text-coral">{error}</p>}
-        <button className="btn-primary mt-5 w-full justify-center">{mode === "login" ? "Login" : "Register"}</button>
-        <button type="button" className="mt-4 text-sm font-bold text-mint" onClick={() => setMode(mode === "login" ? "register" : "login")}>
-          {mode === "login" ? "Need an account?" : "Already registered?"}
-        </button>
-      </form>
+    <main className="grid min-h-[75vh] place-items-center px-4 py-10">
+      <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-mint/20 text-mint">
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black">OTP Email Verification</h1>
+            <p className="text-xs text-slate-500">Fast, secure & passwordless login connected to database</p>
+          </div>
+        </div>
+
+        {infoMsg && (
+          <div className="mt-5 rounded border border-mint/30 bg-mint/10 p-3 text-xs font-bold text-mint flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>{infoMsg}</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 rounded bg-coral/10 p-3 text-xs font-bold text-coral">
+            {error}
+          </div>
+        )}
+
+        {step === "email" ? (
+          <form onSubmit={handleSendOtp} className="mt-6 space-y-4">
+            <div>
+              <label className="label">Your Name (Optional)</label>
+              <input
+                className="input mt-1"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="label">Your Email Address</label>
+              <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                <Mail size={18} className="mr-2 text-slate-400" />
+                <input
+                  required
+                  type="email"
+                  className="w-full bg-transparent text-sm outline-none"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
+              {loading ? "Generating OTP Code..." : "Send Verification OTP"} <ArrowRight size={16} />
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
+            <div className="rounded bg-slate-100 p-3 dark:bg-slate-800 text-xs">
+              <span className="font-semibold text-slate-500">Email:</span> <strong className="text-mint">{email}</strong>
+              <button type="button" className="ml-2 font-bold underline" onClick={() => setStep("email")}>Change</button>
+            </div>
+
+            {sentOtpCode && (
+              <div className="rounded border border-mint/40 bg-mint/15 p-3 text-center">
+                <span className="block text-xs font-semibold text-slate-600 dark:text-slate-300">Generated OTP Code:</span>
+                <span className="text-2xl font-black tracking-widest text-mint">{sentOtpCode}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="label">Enter 6-Digit OTP Code</label>
+              <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                <KeyRound size={18} className="mr-2 text-slate-400" />
+                <input
+                  required
+                  maxLength={6}
+                  className="w-full bg-transparent text-lg font-bold tracking-widest outline-none"
+                  placeholder="123456"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
+              {loading ? "Verifying OTP..." : "Verify OTP & Complete Login"}
+            </button>
+          </form>
+        )}
+      </div>
     </main>
   );
 }
