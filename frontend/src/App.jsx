@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import ProductModal from "./components/ProductModal";
 import { AppProvider, useApp } from "./context/AppContext";
-import { api } from "./lib/api";
+import { api, MOCK_PRODUCTS } from "./lib/api";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import Cart from "./pages/Cart";
@@ -18,12 +18,22 @@ function Shell() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
-  const [trending, setTrending] = useState([]);
+  const [trending, setTrending] = useState(MOCK_PRODUCTS);
 
   async function loadHome() {
-    setTrending(await api("/ai/trending"));
-    if (user) setRecommendations(await api("/ai/recommendations"));
-    else setRecommendations([]);
+    try {
+      const trendingRes = await api("/ai/trending");
+      setTrending(Array.isArray(trendingRes) && trendingRes.length ? trendingRes : MOCK_PRODUCTS);
+      if (user) {
+        const recRes = await api("/ai/recommendations");
+        setRecommendations(Array.isArray(recRes) ? recRes : []);
+      } else {
+        setRecommendations([]);
+      }
+    } catch (e) {
+      setTrending(MOCK_PRODUCTS);
+      setRecommendations([]);
+    }
   }
 
   useEffect(() => { loadHome(); }, [user?.user_id]);
