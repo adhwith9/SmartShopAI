@@ -1,5 +1,5 @@
 {
-  "appId": "com.smartshop.ai",
+  "appId": "ai.smartshop.mobile.app",
   "appName": "SmartShop AI",
   "webDir": "dist",
   "server": {
