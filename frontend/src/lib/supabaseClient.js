@@ -129,28 +129,33 @@ export async function fetchOrdersFromSupabase(userEmail) {
  * Save or Update user profile in Supabase
  */
 export async function saveUserProfileInSupabase(profileData) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !profileData || !profileData.email) return null;
+
+  const email = profileData.email.toLowerCase().trim();
+  const userName = profileData.name || profileData.fullName || email.split("@")[0] || "Customer";
+
+  const payload = {
+    email: email,
+    name: userName,
+    phone: profileData.phone || "+91 9876543210",
+    role: profileData.role || (email.includes("admin") ? "admin" : "customer"),
+    address: typeof profileData.address === "object" ? profileData.address : {},
+    updated_at: new Date().toISOString()
+  };
+
+  console.log("⚡ Saving user profile to Supabase:", payload);
 
   const { data, error } = await supabase
     .from("profiles")
-    .upsert([
-      {
-        email: profileData.email,
-        name: profileData.name || profileData.fullName,
-        phone: profileData.phone,
-        address: profileData.address || profileData,
-        role: profileData.role || "customer",
-        updated_at: new Date().toISOString()
-      }
-    ], { onConflict: "email" })
-    .select()
-    .single();
+    .upsert([payload], { onConflict: "email" })
+    .select();
 
   if (error) {
-    console.error("Error saving profile in Supabase:", error.message);
+    console.error("❌ Error saving profile in Supabase:", error.message || error);
     return null;
   }
-  return data;
+  console.log("✅ Profile successfully saved to Supabase:", data);
+  return data ? data[0] : null;
 }
 
 /**

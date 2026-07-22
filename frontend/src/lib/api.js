@@ -532,12 +532,14 @@ export async function api(path, options = {}) {
         const supaReview = await addReviewInSupabase(body);
         if (supaReview) return supaReview;
       }
-      if (path.includes("/auth/verify-otp") || path.includes("/auth/login") || path.includes("/auth/register")) {
+      if (path.includes("/auth/send-otp") || path.includes("/auth/verify-otp") || path.includes("/auth/login") || path.includes("/auth/register")) {
         const body = options.body ? JSON.parse(options.body) : {};
         if (body.email) {
-          saveUserProfileInSupabase({
+          await saveUserProfileInSupabase({
             email: body.email,
             name: body.name || body.email.split("@")[0],
+            phone: body.phone,
+            address: body.address,
             role: body.email.includes("admin") ? "admin" : "customer"
           });
         }
