@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Phone, User, CheckCircle, Truck, Trash2, Plus, Minus, CreditCard, Tag } from "lucide-react";
+import { MapPin, Phone, User, CheckCircle, Truck, Trash2, Plus, Minus, CreditCard, Wallet, QrCode, Building2, Banknote, ShieldCheck } from "lucide-react";
 import { api, MOCK_COUPONS } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
@@ -14,13 +14,21 @@ export default function Cart({ setPage }) {
     city: user?.address?.city || "Springfield",
     state: user?.address?.state || "IL",
     zip: user?.address?.zip || "62704",
-    phone: user?.address?.phone || "+91 9876543210"
+    phone: user?.address?.phone || user?.phone || "+91 9876543210"
   });
 
   const [couponCode, setCouponCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
   const [couponMsg, setCouponMsg] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("upi");
+
+  // Payment Selection State
+  const [paymentMethod, setPaymentMethod] = useState("upi"); // "upi" | "card" | "netbanking" | "cod" | "wallet"
+  const [upiId, setUpiId] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [selectedBank, setSelectedBank] = useState("HDFC Bank");
+
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
@@ -64,6 +72,12 @@ export default function Cart({ setPage }) {
     if (!user) return setPage("auth");
     setLoading(true);
 
+    let methodLabel = "Razorpay / UPI";
+    if (paymentMethod === "card") methodLabel = "Credit / Debit Card";
+    if (paymentMethod === "netbanking") methodLabel = `NetBanking (${selectedBank})`;
+    if (paymentMethod === "cod") methodLabel = "Cash on Delivery (COD)";
+    if (paymentMethod === "wallet") methodLabel = "SmartShop Pay Later Wallet";
+
     try {
       const order = await api("/orders", {
         method: "POST",
@@ -72,7 +86,7 @@ export default function Cart({ setPage }) {
           subtotal,
           discount: discountAmount,
           total_amount: grandTotal,
-          payment_method: paymentMethod === "upi" ? "Razorpay / UPI (Test Mode)" : "Stripe / Card (Test Mode)",
+          payment_method: methodLabel,
           address
         })
       });
@@ -91,7 +105,7 @@ export default function Cart({ setPage }) {
     <main className="section max-w-4xl">
       <div className="section-title">
         <div>
-          <p>Checkout Pipeline</p>
+          <p>Checkout Pipeline (Amazon / Flipkart Grade)</p>
           <h2>{step === "address" ? "Delivery Address" : step === "payment" ? "Select Payment Method" : step === "success" ? "Order Confirmed!" : "Shopping Cart"}</h2>
         </div>
         <span className="font-bold text-mint">₹{grandTotal.toLocaleString('en-IN')}</span>
@@ -215,36 +229,115 @@ export default function Cart({ setPage }) {
       )}
 
       {step === "payment" && (
-        <div className="rounded-xl border border-black/10 bg-white p-6 shadow-md dark:border-white/10 dark:bg-slate-900 space-y-5">
-          <h3 className="text-lg font-bold">Select Payment Gateway</h3>
+        <div className="rounded-xl border border-black/10 bg-white p-6 shadow-md dark:border-white/10 dark:bg-slate-900 space-y-6">
+          <div>
+            <h3 className="text-lg font-bold">Select Payment Gateway Method</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Choose your preferred payment option like Flipkart / Amazon</p>
+          </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* Payment Method Option Selector Tabs */}
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             <div
-              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "upi" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "upi" ? "border-mint bg-mint/10 shadow" : "border-black/10 dark:border-white/10"}`}
               onClick={() => setPaymentMethod("upi")}
             >
-              <strong className="block text-sm font-bold">Razorpay / UPI / NetBanking (Test Mode)</strong>
-              <p className="text-xs text-slate-500 mt-1">Pay via Google Pay, PhonePe, Paytm, BHIM & NetBanking</p>
+              <div className="flex items-center gap-2 text-mint mb-1"><QrCode size={18} /><strong className="text-sm">UPI Payment</strong></div>
+              <p className="text-[11px] text-slate-500">Google Pay, PhonePe, Paytm, BHIM</p>
             </div>
 
             <div
-              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "stripe" ? "border-mint bg-mint/10" : "border-black/10 dark:border-white/10"}`}
-              onClick={() => setPaymentMethod("stripe")}
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "card" ? "border-mint bg-mint/10 shadow" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("card")}
             >
-              <strong className="block text-sm font-bold">Stripe International Card (Test Mode)</strong>
-              <p className="text-xs text-slate-500 mt-1">Accept Visa, Mastercard, American Express & Apple Pay</p>
+              <div className="flex items-center gap-2 text-sky-500 mb-1"><CreditCard size={18} /><strong className="text-sm">Credit / Debit Card</strong></div>
+              <p className="text-[11px] text-slate-500">Visa, Mastercard, RuPay, Maestro</p>
+            </div>
+
+            <div
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "netbanking" ? "border-mint bg-mint/10 shadow" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("netbanking")}
+            >
+              <div className="flex items-center gap-2 text-indigo-500 mb-1"><Building2 size={18} /><strong className="text-sm">NetBanking</strong></div>
+              <p className="text-[11px] text-slate-500">HDFC, ICICI, SBI, Axis & 50+ Banks</p>
+            </div>
+
+            <div
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "cod" ? "border-mint bg-mint/10 shadow" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("cod")}
+            >
+              <div className="flex items-center gap-2 text-emerald-500 mb-1"><Banknote size={18} /><strong className="text-sm">Cash on Delivery (COD)</strong></div>
+              <p className="text-[11px] text-slate-500">Pay cash or UPI upon delivery</p>
+            </div>
+
+            <div
+              className={`cursor-pointer rounded-xl border p-4 transition ${paymentMethod === "wallet" ? "border-mint bg-mint/10 shadow" : "border-black/10 dark:border-white/10"}`}
+              onClick={() => setPaymentMethod("wallet")}
+            >
+              <div className="flex items-center gap-2 text-amber-500 mb-1"><Wallet size={18} /><strong className="text-sm">SmartShop Pay Later</strong></div>
+              <p className="text-[11px] text-slate-500">1-Click Instant Credit Checkout</p>
             </div>
           </div>
 
+          {/* Dynamic Payment Details Input */}
+          <div className="rounded-xl border border-black/10 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800">
+            {paymentMethod === "upi" && (
+              <div className="space-y-3">
+                <label className="label">Enter UPI ID (e.g., yourname@okaxis / 9876543210@paytm)</label>
+                <input className="input" placeholder="mobile@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} />
+                <p className="text-[11px] text-slate-500 flex items-center gap-1"><ShieldCheck size={14} className="text-mint" /> Instant UPI payment verification via Razorpay Gateway</p>
+              </div>
+            )}
+
+            {paymentMethod === "card" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="label">Card Number</label>
+                  <input className="input" placeholder="4532 •••• •••• 8912" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="label">Expiry Date</label><input className="input" placeholder="MM/YY" value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} /></div>
+                  <div><label className="label">CVV Code</label><input className="input" type="password" maxLength={4} placeholder="•••" value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} /></div>
+                </div>
+              </div>
+            )}
+
+            {paymentMethod === "netbanking" && (
+              <div className="space-y-3">
+                <label className="label">Select Your Bank</label>
+                <select className="input" value={selectedBank} onChange={(e) => setSelectedBank(e.target.value)}>
+                  <option value="HDFC Bank">HDFC Bank</option>
+                  <option value="ICICI Bank">ICICI Bank</option>
+                  <option value="State Bank of India (SBI)">State Bank of India (SBI)</option>
+                  <option value="Axis Bank">Axis Bank</option>
+                  <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                </select>
+              </div>
+            )}
+
+            {paymentMethod === "cod" && (
+              <div className="space-y-1 text-xs">
+                <p className="font-bold text-emerald-600 dark:text-emerald-400">✅ Cash / UPI on Delivery Available</p>
+                <p className="text-slate-500">Pay cash or scan QR code when courier arrives at {address.city}.</p>
+              </div>
+            )}
+
+            {paymentMethod === "wallet" && (
+              <div className="space-y-1 text-xs">
+                <p className="font-bold text-amber-600 dark:text-amber-400">⚡ 1-Click Instant Pay Later Active</p>
+                <p className="text-slate-500">Credit limit of ₹50,000 available for your account {address.email}.</p>
+              </div>
+            )}
+          </div>
+
           <div className="rounded bg-slate-100 p-4 text-xs dark:bg-slate-800 space-y-1">
-            <p><strong>Shipping to:</strong> {address.fullName}, {address.street}, {address.city}, {address.state} {address.zip}</p>
+            <p><strong>Delivering to:</strong> {address.fullName}, {address.street}, {address.city}, {address.state} {address.zip}</p>
             <p><strong>Total Payable:</strong> <span className="font-bold text-mint text-sm">₹{grandTotal.toLocaleString('en-IN')}</span></p>
           </div>
 
           <div className="flex justify-between border-t border-black/10 pt-4 dark:border-white/10">
             <button className="btn-secondary" onClick={() => setStep("address")}>Back</button>
             <button className="btn-primary" disabled={loading} onClick={handleConfirmOrder}>
-              {loading ? "Verifying & Saving Order..." : `Pay ₹${grandTotal.toLocaleString('en-IN')} & Complete Order`}
+              {loading ? "Verifying & Confirming..." : `Pay ₹${grandTotal.toLocaleString('en-IN')} & Confirm Order`}
             </button>
           </div>
         </div>
@@ -261,6 +354,7 @@ export default function Cart({ setPage }) {
           {confirmedOrder && (
             <div className="mx-auto max-w-md rounded bg-white p-4 text-left text-xs shadow dark:bg-slate-900 space-y-1">
               <p><strong>Order ID:</strong> #{confirmedOrder.order_id}</p>
+              <p><strong>Payment Method:</strong> {confirmedOrder.payment_method}</p>
               <p><strong>Tracking Number:</strong> <span className="font-mono font-bold text-mint">{confirmedOrder.tracking_number}</span></p>
               <p><strong>Estimated Delivery:</strong> {confirmedOrder.estimated_delivery}</p>
               <p><strong>Total Amount:</strong> ₹{confirmedOrder.total_amount.toLocaleString('en-IN')}</p>

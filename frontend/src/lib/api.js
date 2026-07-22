@@ -171,6 +171,7 @@ class PersistentDatabase {
           email: "user@smartshop.ai",
           password: "password123",
           role: "customer",
+          phone: "+91 9876543210",
           address: { fullName: "SmartShop Customer", street: "742 Evergreen Terrace", city: "Springfield", state: "IL", zip: "62704", phone: "+91 9876543210" },
           preferences: ["Audio", "Wearables"],
           created_at: new Date().toISOString()
@@ -181,6 +182,7 @@ class PersistentDatabase {
           email: "admin@smartshop.ai",
           password: "admin123",
           role: "admin",
+          phone: "+91 9999900000",
           address: { fullName: "System Administrator", street: "1 Infinite Loop", city: "Cupertino", state: "CA", zip: "95014", phone: "+91 9999900000" },
           preferences: ["All"],
           created_at: new Date().toISOString()
@@ -303,7 +305,7 @@ class PersistentDatabase {
     };
   }
 
-  verifyOtp(email, otpCode, name = "", preferences = []) {
+  verifyOtp(email, otpCode, extra = {}) {
     const stored = this.otpStore[email.toLowerCase()];
     if (stored && stored !== otpCode && otpCode !== "123456") {
       throw new Error("Invalid OTP code. Please check your email or enter valid 6-digit code.");
@@ -315,12 +317,13 @@ class PersistentDatabase {
     if (!found) {
       found = {
         user_id: users.length + 1,
-        name: name || email.split("@")[0],
+        name: extra.name || email.split("@")[0],
         email: email,
+        phone: extra.phone || "+91 9876543210",
         password: "otp-verified-pass",
         role: email.includes("admin") ? "admin" : "customer",
-        address: { fullName: name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: "+91 9876543210" },
-        preferences: Array.isArray(preferences) ? preferences : ["General"],
+        address: extra.address || { fullName: extra.name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: extra.phone || "+91 9876543210" },
+        preferences: extra.preferences || ["General"],
         created_at: new Date().toISOString()
       };
       users.push(found);
@@ -329,10 +332,15 @@ class PersistentDatabase {
       this.addEmail(email, {
         id: Date.now(),
         sender: "welcome@smartshop.ai",
-        subject: "🎉 Account Registered & OTP Verified",
+        subject: "🎉 Account Registered & Details Saved",
         date: new Date().toLocaleDateString(),
-        snippet: `Hello ${found.name}, your email (${email}) has been verified via OTP and stored in the customer dataset!`
+        snippet: `Hello ${found.name}, your account registration for ${email} is complete and stored in the customer dataset!`
       });
+    } else if (extra.name || extra.phone || extra.address) {
+      if (extra.name) found.name = extra.name;
+      if (extra.phone) found.phone = extra.phone;
+      if (extra.address) found.address = extra.address;
+      this.saveUsers(users);
     }
 
     this.addEmail(email, {
@@ -418,7 +426,7 @@ class PersistentDatabase {
       sender: "fulfillment@smartshop.ai",
       subject: `📦 Order Confirmation #ORD-${newOrder.order_id}`,
       date: new Date().toLocaleDateString(),
-      snippet: `Thank you for your order! Your purchase of ₹${newOrder.total_amount.toLocaleString('en-IN')} is confirmed. Tracking: ${newOrder.tracking_number}. Delivering to: ${addrStr}.`
+      snippet: `Thank you for your order! Your purchase of ₹${newOrder.total_amount.toLocaleString('en-IN')} is confirmed via ${newOrder.payment_method}. Tracking: ${newOrder.tracking_number}. Delivering to: ${addrStr}.`
     });
 
     return newOrder;
@@ -435,6 +443,7 @@ class PersistentDatabase {
         user_id: u.user_id,
         name: u.name,
         email: u.email,
+        phone: u.phone || "+91 9876543210",
         role: u.role,
         address: u.address || {},
         orders_count: userOrders.length,
@@ -481,18 +490,18 @@ export async function api(path, options = {}) {
 
   if (path.includes("/auth/verify-otp")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    return db.verifyOtp(body.email, body.otp, body.name, body.preferences);
+    return db.verifyOtp(body.email, body.otp, body);
   }
 
   if (path.includes("/auth/login")) {
     const body = options.body ? JSON.parse(options.body) : {};
     if (body.role === "admin") return db.adminLogin(body.email, body.password);
-    return db.verifyOtp(body.email, body.otp || "123456", body.name);
+    return db.verifyOtp(body.email, body.otp || "123456", body);
   }
 
   if (path.includes("/auth/register")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    return db.verifyOtp(body.email, body.otp || "123456", body.name, body.preferences);
+    return db.verifyOtp(body.email, body.otp || "123456", body);
   }
 
   if (path.includes("/emails")) {

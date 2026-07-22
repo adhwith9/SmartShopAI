@@ -1,20 +1,28 @@
 import { useState } from "react";
-import { Mail, KeyRound, CheckCircle2, ShieldCheck, ArrowRight, UserCheck, Lock } from "lucide-react";
+import { Mail, KeyRound, CheckCircle2, ShieldCheck, ArrowRight, UserCheck, Lock, UserPlus, Phone, MapPin } from "lucide-react";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Auth({ setPage }) {
   const { persistSession } = useApp();
   const [authMode, setAuthMode] = useState("customer"); // "customer" | "admin"
+  const [customerMode, setCustomerMode] = useState("login"); // "login" | "register"
 
-  // Customer OTP State
-  const [email, setEmail] = useState("");
+  // Registration Form State
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+
+  // OTP Verification State
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("email"); // "email" | "otp"
   const [sentOtpCode, setSentOtpCode] = useState("");
 
-  // Admin Credentials State
+  // Admin Login Credentials State
   const [adminEmail, setAdminEmail] = useState("admin@smartshop.ai");
   const [adminPass, setAdminPass] = useState("admin123");
 
@@ -36,7 +44,7 @@ export default function Auth({ setPage }) {
         body: JSON.stringify({ email })
       });
       setSentOtpCode(res.otp || "742918");
-      setInfoMsg(`🔑 Verification OTP sent to ${email}. Check code below!`);
+      setInfoMsg(`🔑 Verification OTP sent to ${email}. Check code below & inbox!`);
       setStep("otp");
     } catch (err) {
       setError(err.message || "Failed to send OTP code.");
@@ -56,7 +64,13 @@ export default function Auth({ setPage }) {
     try {
       const res = await api("/auth/verify-otp", {
         method: "POST",
-        body: JSON.stringify({ email, otp, name })
+        body: JSON.stringify({
+          email,
+          otp,
+          name,
+          phone,
+          address: { fullName: name || email.split("@")[0], street, city, state, zip, phone }
+        })
       });
 
       persistSession(res);
@@ -89,16 +103,16 @@ export default function Auth({ setPage }) {
   }
 
   return (
-    <main className="grid min-h-[75vh] place-items-center px-4 py-10">
-      <div className="w-full max-w-md rounded-xl border border-black/10 bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-slate-900">
-        {/* Mode Switcher Tabs */}
+    <main className="grid min-h-[80vh] place-items-center px-4 py-10">
+      <div className="w-full max-w-lg rounded-xl border border-black/10 bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+        {/* Main Portal Switcher */}
         <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 mb-6">
           <button
             type="button"
             className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-xs font-bold transition ${authMode === "customer" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
             onClick={() => { setAuthMode("customer"); setError(""); setInfoMsg(""); }}
           >
-            <UserCheck size={16} /> Customer Login (OTP)
+            <UserCheck size={16} /> Customer Portal
           </button>
           <button
             type="button"
@@ -111,14 +125,16 @@ export default function Auth({ setPage }) {
 
         {authMode === "customer" ? (
           <div>
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-mint/20 text-mint">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h1 className="text-xl font-black">Customer OTP Verification</h1>
-                <p className="text-xs text-slate-500">Passwordless real-email login connected to dataset</p>
-              </div>
+            {/* Customer Login / Register Toggle */}
+            <div className="flex justify-between items-center border-b border-black/10 pb-3 mb-5 dark:border-white/10">
+              <h1 className="text-xl font-black">{customerMode === "login" ? "Customer Login" : "Create New Account"}</h1>
+              <button
+                type="button"
+                className="text-xs font-bold text-mint hover:underline flex items-center gap-1"
+                onClick={() => { setCustomerMode(customerMode === "login" ? "register" : "login"); setStep("email"); setError(""); }}
+              >
+                {customerMode === "login" ? <><UserPlus size={14} /> Create Account</> : <><UserCheck size={14} /> Login Existing Account</>}
+              </button>
             </div>
 
             {infoMsg && (
@@ -136,18 +152,37 @@ export default function Auth({ setPage }) {
 
             {step === "email" ? (
               <form onSubmit={handleSendOtp} className="mt-5 space-y-4">
-                <div>
-                  <label className="label">Your Name (Optional)</label>
-                  <input
-                    className="input mt-1"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
+                {customerMode === "register" && (
+                  <>
+                    <div>
+                      <label className="label">Full Name *</label>
+                      <input
+                        required
+                        className="input mt-1"
+                        placeholder="Enter your full name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Mobile Number *</label>
+                      <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                        <Phone size={16} className="mr-2 text-slate-400" />
+                        <input
+                          required
+                          className="w-full bg-transparent text-sm outline-none"
+                          placeholder="+91 9876543210"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div>
-                  <label className="label">Your Email Address</label>
+                  <label className="label">Email Address *</label>
                   <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
                     <Mail size={18} className="mr-2 text-slate-400" />
                     <input
@@ -161,8 +196,22 @@ export default function Auth({ setPage }) {
                   </div>
                 </div>
 
+                {customerMode === "register" && (
+                  <div className="space-y-3 pt-2 border-t border-black/10 dark:border-white/10">
+                    <label className="label text-xs font-bold text-slate-500 uppercase">Default Delivery Address (Optional)</label>
+                    <div>
+                      <input className="input" placeholder="Street Address" value={street} onChange={(e) => setStreet(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input className="input" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+                      <input className="input" placeholder="State" value={state} onChange={(e) => setState(e.target.value)} />
+                      <input className="input" placeholder="PIN Code" value={zip} onChange={(e) => setZip(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
                 <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
-                  {loading ? "Generating OTP Code..." : "Send Verification OTP"} <ArrowRight size={16} />
+                  {loading ? "Generating OTP..." : customerMode === "register" ? "Create Account & Send Verification OTP" : "Send Login Verification OTP"} <ArrowRight size={16} />
                 </button>
               </form>
             ) : (
@@ -196,14 +245,14 @@ export default function Auth({ setPage }) {
                 </div>
 
                 <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
-                  {loading ? "Verifying OTP..." : "Verify OTP & Login"}
+                  {loading ? "Verifying OTP..." : "Verify OTP & Complete Setup"}
                 </button>
               </form>
             )}
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-5">
               <div className="grid h-10 w-10 place-items-center rounded-full bg-indigo-500/20 text-indigo-500">
                 <Lock size={22} />
               </div>
