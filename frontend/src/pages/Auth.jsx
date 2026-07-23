@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Mail, KeyRound, CheckCircle2, ShieldCheck, ArrowRight, UserCheck, Lock, UserPlus, Phone, MapPin } from "lucide-react";
+import { Mail, KeyRound, CheckCircle2, ShieldCheck, ArrowRight, UserCheck, Lock, UserPlus, Phone, MapPin, Building2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Auth({ setPage }) {
   const { persistSession } = useApp();
-  const [authMode, setAuthMode] = useState("customer"); // "customer" | "admin"
+  const [authMode, setAuthMode] = useState("customer"); // "customer" | "vendor" | "admin"
   const [customerMode, setCustomerMode] = useState("login"); // "login" | "register"
 
   // Registration Form State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [gstin, setGstin] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -62,19 +64,29 @@ export default function Auth({ setPage }) {
     setLoading(true);
 
     try {
+      const role = authMode === "vendor" ? "vendor" : "customer";
       const res = await api("/auth/verify-otp", {
         method: "POST",
         body: JSON.stringify({
           email,
           otp,
-          name,
+          name: name || email.split("@")[0],
           phone,
+          companyName,
+          gstin,
+          role,
           address: { fullName: name || email.split("@")[0], street, city, state, zip, phone }
         })
       });
 
+      // Override role if signing up as vendor
+      if (res && res.user) {
+        res.user.role = role;
+        res.user.company_name = companyName;
+      }
+
       persistSession(res);
-      setPage("home");
+      setPage(role === "vendor" ? "vendor" : "home");
     } catch (err) {
       setError(err.message || "OTP verification failed.");
     } finally {
@@ -109,17 +121,24 @@ export default function Auth({ setPage }) {
         <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 mb-6">
           <button
             type="button"
-            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-xs font-bold transition ${authMode === "customer" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${authMode === "customer" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
             onClick={() => { setAuthMode("customer"); setError(""); setInfoMsg(""); }}
           >
-            <UserCheck size={16} /> Customer Portal
+            <UserCheck size={15} /> Customer
           </button>
           <button
             type="button"
-            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-xs font-bold transition ${authMode === "admin" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${authMode === "vendor" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+            onClick={() => { setAuthMode("vendor"); setError(""); setInfoMsg(""); }}
+          >
+            <Building2 size={15} /> Company Owner
+          </button>
+          <button
+            type="button"
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${authMode === "admin" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
             onClick={() => { setAuthMode("admin"); setError(""); setInfoMsg(""); }}
           >
-            <ShieldCheck size={16} /> Admin Portal
+            <ShieldCheck size={15} /> Admin
           </button>
         </div>
 
@@ -152,10 +171,26 @@ export default function Auth({ setPage }) {
 
             {step === "email" ? (
               <form onSubmit={handleSendOtp} className="mt-5 space-y-4">
-                {customerMode === "register" && (
+                {(customerMode === "register" || authMode === "vendor") && (
                   <>
+                    {authMode === "vendor" && (
+                      <div>
+                        <label className="label">Company / Brand Name *</label>
+                        <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
+                          <Building2 size={16} className="mr-2 text-slate-400" />
+                          <input
+                            required
+                            className="w-full bg-transparent text-sm outline-none"
+                            placeholder="e.g. Nexus Electronics Pvt Ltd"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <div>
-                      <label className="label">Full Name *</label>
+                      <label className="label">{authMode === "vendor" ? "Owner / Contact Person Name *" : "Full Name *"}</label>
                       <input
                         required
                         className="input mt-1"
@@ -178,6 +213,18 @@ export default function Auth({ setPage }) {
                         />
                       </div>
                     </div>
+
+                    {authMode === "vendor" && (
+                      <div>
+                        <label className="label">GSTIN / Business Reg ID (Optional)</label>
+                        <input
+                          className="input mt-1"
+                          placeholder="e.g. 29ABCDE1234F1Z5"
+                          value={gstin}
+                          onChange={(e) => setGstin(e.target.value)}
+                        />
+                      </div>
+                    )}
                   </>
                 )}
 

@@ -198,6 +198,14 @@ export default function Navbar({ page, setPage }) {
                     >
                       <PackageCheck className="w-4 h-4 text-emerald-400" /> My Orders & Invoices
                     </button>
+                    {(user.role === "vendor" || user.company_name) && (
+                      <button
+                        onClick={() => { setPage("vendor"); setUserDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-indigo-400" /> Seller Portal
+                      </button>
+                    )}
                     {user.role === "admin" && (
                       <button
                         onClick={() => { setPage("admin"); setUserDropdownOpen(false); }}

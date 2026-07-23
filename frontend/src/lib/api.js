@@ -9,7 +9,12 @@ import {
   fetchUserProfileFromSupabase,
   fetchAllProfilesFromSupabase,
   addReviewInSupabase,
-  fetchReviewsFromSupabase
+  fetchReviewsFromSupabase,
+  fetchVendorProductsFromSupabase,
+  fetchPendingProductsFromSupabase,
+  createVendorProductInSupabase,
+  approveVendorProductInSupabase,
+  rejectVendorProductInSupabase
 } from "./supabaseClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
@@ -540,6 +545,30 @@ export async function api(path, options = {}) {
             role: body.email.includes("admin") ? "admin" : "customer"
           }).catch(e => console.warn("Supabase user sync error:", e));
         }
+      }
+      if (path.includes("/vendor/products") && options.method === "POST") {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaVendorProduct = await createVendorProductInSupabase(body);
+        if (supaVendorProduct) return supaVendorProduct;
+      }
+      if (path.includes("/vendor/products") && (!options.method || options.method === "GET")) {
+        const vendorEmail = currentUser?.email;
+        const supaVendorProducts = await fetchVendorProductsFromSupabase(vendorEmail);
+        if (supaVendorProducts) return supaVendorProducts;
+      }
+      if (path.includes("/admin/pending-products")) {
+        const supaPending = await fetchPendingProductsFromSupabase();
+        if (supaPending) return supaPending;
+      }
+      if (path.includes("/admin/approve-product")) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaApproved = await approveVendorProductInSupabase(body.productId || body.id);
+        if (supaApproved) return supaApproved;
+      }
+      if (path.includes("/admin/reject-product")) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaRejected = await rejectVendorProductInSupabase(body.productId || body.id);
+        if (supaRejected) return supaRejected;
       }
       if (path.includes("/admin/customers") || path.includes("/admin/users")) {
         const supaProfiles = await fetchAllProfilesFromSupabase();

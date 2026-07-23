@@ -14,6 +14,7 @@ export default function Admin() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [pendingProducts, setPendingProducts] = useState([]);
   const [activeTab, setActiveTab] = useState("analytics");
   const [adminEmail, setAdminEmail] = useState("admin@smartshop.ai");
   const [adminPass, setAdminPass] = useState("admin123");
@@ -23,10 +24,25 @@ export default function Admin() {
   const [draft, setDraft] = useState({ name: "", description: "", category: "Electronics", price: 14999, image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80", stock: 20, rating: 4.5, tags: "ai,new" });
 
   async function load() {
-    const [o, c, p, ord, r] = await Promise.all([
-      api("/admin/overview"), api("/admin/customers"), api("/admin/products"), api("/admin/orders"), api("/admin/reviews")
+    const [o, c, p, ord, r, pend] = await Promise.all([
+      api("/admin/overview"), api("/admin/customers"), api("/admin/products"), api("/admin/orders"), api("/admin/reviews"), api("/admin/pending-products")
     ]);
-    setOverview(o); setCustomers(Array.isArray(c) ? c : []); setProducts(Array.isArray(p) ? p : []); setOrders(Array.isArray(ord) ? ord : []); setReviews(Array.isArray(r) ? r : []);
+    setOverview(o);
+    setCustomers(Array.isArray(c) ? c : []);
+    setProducts(Array.isArray(p) ? p : []);
+    setOrders(Array.isArray(ord) ? ord : []);
+    setReviews(Array.isArray(r) ? r : []);
+    setPendingProducts(Array.isArray(pend) ? pend : []);
+  }
+
+  async function handleApprove(id) {
+    await api("/admin/approve-product", { method: "POST", body: JSON.stringify({ id }) });
+    await load();
+  }
+
+  async function handleReject(id) {
+    await api("/admin/reject-product", { method: "POST", body: JSON.stringify({ id }) });
+    await load();
   }
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user]);
@@ -138,6 +154,12 @@ export default function Admin() {
             Analytics & Products
           </button>
           <button
+            className={`btn-secondary text-sm ${activeTab === "pending" ? "border-amber-500 text-amber-500" : ""}`}
+            onClick={() => setActiveTab("pending")}
+          >
+            Pending Approvals ({pendingProducts.length})
+          </button>
+          <button
             className={`btn-secondary text-sm ${activeTab === "customers" ? "border-mint text-mint" : ""}`}
             onClick={() => setActiveTab("customers")}
           >
@@ -148,12 +170,60 @@ export default function Admin() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Revenue" value={`₹${overview.revenue}`} detail="+24% lift" />
-        <MetricCard label="Total Customers" value={customers.length || overview.users} detail="in dataset" tone="sky" />
-        <MetricCard label="Total Orders" value={orders.length || overview.orders} detail="processed" tone="gold" />
-        <MetricCard label="Products" value={products.length || overview.products} detail="catalog SKUs" tone="coral" />
+        <MetricCard label="Pending Seller Products" value={pendingProducts.length} detail="awaiting review" tone="gold" />
+        <MetricCard label="Total Orders" value={orders.length || overview.orders} detail="processed" tone="sky" />
+        <MetricCard label="Active Products" value={products.length || overview.products} detail="catalog SKUs" tone="coral" />
       </div>
 
-      {activeTab === "customers" ? (
+      {activeTab === "pending" ? (
+        <section className="panel mt-6">
+          <div className="flex items-center justify-between border-b border-black/10 pb-4 dark:border-white/10">
+            <div>
+              <h3 className="panel-title mb-0">Company Owner Product Submissions ({pendingProducts.length})</h3>
+              <p className="text-xs text-slate-500">Review products submitted by registered Company Owners before publishing to public store</p>
+            </div>
+            <button className="btn-secondary text-xs" onClick={load}>Refresh List</button>
+          </div>
+
+          {pendingProducts.length === 0 ? (
+            <p className="py-12 text-center text-sm font-bold text-slate-500">🎉 No pending product approvals. All submitted products have been reviewed!</p>
+          ) : (
+            <div className="mt-4 space-y-4">
+              {pendingProducts.map((p) => (
+                <div key={p.product_id || p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                  <div className="flex items-center gap-4">
+                    <img src={p.image} alt={p.name} className="h-20 w-20 rounded-lg object-cover border border-black/10 dark:border-white/10" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">PENDING REVIEW</span>
+                        <span className="text-xs font-bold text-slate-500">Submitted by: {p.company_name || p.brand || p.vendor_email} ({p.vendor_email})</span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900 dark:text-white mt-1">{p.name}</h4>
+                      <p className="text-xs text-slate-500">{p.category} • Price: ₹{Number(p.price).toLocaleString("en-IN")} • Stock: {p.stock} units</p>
+                      {p.description && <p className="text-xs text-slate-400 mt-1 italic">"{p.description}"</p>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleApprove(p.product_id || p.id)}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                    >
+                      Approve & Publish to Store
+                    </button>
+                    <button
+                      onClick={() => handleReject(p.product_id || p.id)}
+                      className="rounded-lg bg-red-600/10 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-600/20 transition"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : activeTab === "customers" ? (
         <section className="panel mt-6">
           <div className="flex items-center justify-between border-b border-black/10 pb-4 dark:border-white/10">
             <div>

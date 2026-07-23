@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS public.products (
     images TEXT[] DEFAULT '{}',
     description TEXT,
     specifications JSONB DEFAULT '{}'::jsonb,
+    vendor_email TEXT,
+    vendor_name TEXT,
+    company_name TEXT,
+    status TEXT DEFAULT 'approved' CHECK (status IN ('approved', 'pending_approval', 'rejected')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -40,8 +44,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     user_id BIGINT UNIQUE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
+    role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'vendor', 'admin')),
     phone TEXT,
+    company_name TEXT,
+    gstin TEXT,
+    business_phone TEXT,
     avatar_url TEXT,
     address JSONB DEFAULT '{}'::jsonb,
     preferences TEXT[] DEFAULT '{}',

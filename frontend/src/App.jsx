@@ -12,6 +12,8 @@ import Profile from "./pages/Profile";
 import Shop from "./pages/Shop";
 import Wishlist from "./pages/Wishlist";
 
+import MerchantPortal from "./pages/MerchantPortal";
+
 function Shell() {
   const { user } = useApp();
   const [page, setPage] = useState("home");
@@ -55,6 +57,8 @@ function Shell() {
         return <Cart setPage={setPage} />;
       case "wishlist":
         return <Wishlist onOpen={setSelectedProduct} />;
+      case "vendor":
+        return <MerchantPortal setPage={setPage} />;
       case "admin":
         return <Admin />;
       default:

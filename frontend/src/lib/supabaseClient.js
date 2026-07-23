@@ -28,10 +28,123 @@ export async function fetchProductsFromSupabase() {
   const { data, error } = await supabase
     .from("products")
     .select("*")
+    .or("status.eq.approved,status.is.null")
     .order("product_id", { ascending: true });
 
   if (error) {
     console.error("Error fetching products from Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Fetch products created by a specific Company Owner / Vendor
+ */
+export async function fetchVendorProductsFromSupabase(vendorEmail) {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("vendor_email", vendorEmail)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching vendor products from Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Fetch products pending Admin Approval
+ */
+export async function fetchPendingProductsFromSupabase() {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("status", "pending_approval")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching pending products from Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Create a new product submitted by Company Owner (Pending Admin Approval)
+ */
+export async function createVendorProductInSupabase(productData) {
+  if (!isSupabaseConfigured()) return null;
+  const payload = {
+    product_id: Math.floor(100000 + Math.random() * 900000),
+    name: productData.name,
+    category: productData.category || "Electronics",
+    brand: productData.brand || productData.company_name || "Merchant Brand",
+    price: Number(productData.price) || 999,
+    original_price: Number(productData.original_price) || Number(productData.price) * 1.2,
+    stock: Number(productData.stock) || 10,
+    tags: Array.isArray(productData.tags) ? productData.tags : (productData.tags || "").split(",").map(t => t.trim()),
+    image: productData.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80",
+    images: [productData.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80"],
+    description: productData.description || "",
+    specifications: productData.specifications || {},
+    vendor_email: productData.vendor_email,
+    vendor_name: productData.vendor_name,
+    company_name: productData.company_name,
+    status: "pending_approval",
+    created_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating vendor product in Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Approve Vendor Product (Admin Action)
+ */
+export async function approveVendorProductInSupabase(productId) {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await supabase
+    .from("products")
+    .update({ status: "approved" })
+    .or(`product_id.eq.${productId},id.eq.${productId}`)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error approving vendor product in Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Reject Vendor Product (Admin Action)
+ */
+export async function rejectVendorProductInSupabase(productId) {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await supabase
+    .from("products")
+    .update({ status: "rejected" })
+    .or(`product_id.eq.${productId},id.eq.${productId}`)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error rejecting vendor product in Supabase:", error.message);
     return null;
   }
   return data;
