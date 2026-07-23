@@ -50,3 +50,7 @@ gh-pages-temp/
 *.env
 !.env.example
 
+# APK binaries
+*.apk
+
+
