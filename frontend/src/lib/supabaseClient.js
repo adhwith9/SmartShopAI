@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Read Supabase environment variables from Vite env
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+// Read Supabase environment variables from Vite env (with project fallback for mobile APK)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://qdvrnyallalyjyjbofzh.supabase.co";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdnJueWFsbGFseWp5amJvZnpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MDgzNjksImV4cCI6MjEwMDI4NDM2OX0.vYX9f5k7kkooAdM4_N3RW4ATDIiSRIEUZDX0iozkwzo";
 
 export const isSupabaseConfigured = () => {
   return Boolean(
@@ -13,11 +13,8 @@ export const isSupabaseConfigured = () => {
   );
 };
 
-// Initialize Supabase Client (uses dummy values if not set to avoid init crash)
-export const supabase = createClient(
-  isSupabaseConfigured() ? supabaseUrl : "https://placeholder.supabase.co",
-  isSupabaseConfigured() ? supabaseAnonKey : "placeholder-anon-key"
-);
+// Initialize Supabase Client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // -------------------------------------------------------------
 // SUPABASE DATASET SERVICES & DATABASE METHODS

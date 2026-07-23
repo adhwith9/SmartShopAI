@@ -484,25 +484,9 @@ export async function api(path, options = {}) {
   const token = localStorage.getItem("smartshop_token");
   const userStr = localStorage.getItem("smartshop_user");
   const currentUser = userStr ? JSON.parse(userStr) : null;
+  const isCapacitorNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
-  try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {})
-      }
-    });
-    if (response.ok) {
-      const data = await response.json().catch(() => ({}));
-      return data;
-    }
-  } catch (err) {
-    console.warn(`API call to ${path} using persistent database fallback.`);
-  }
-
-  // Supabase Dataset Live Integration Interceptor
+  // 1. Supabase Dataset Cloud Database Handler (Evaluates First for Mobile & Cloud Resilience)
   if (isSupabaseConfigured()) {
     try {
       if (path.includes("/products") && !path.includes("/admin/")) {
@@ -535,13 +519,13 @@ export async function api(path, options = {}) {
       if (path.includes("/auth/send-otp") || path.includes("/auth/verify-otp") || path.includes("/auth/login") || path.includes("/auth/register")) {
         const body = options.body ? JSON.parse(options.body) : {};
         if (body.email) {
-          await saveUserProfileInSupabase({
+          saveUserProfileInSupabase({
             email: body.email,
             name: body.name || body.email.split("@")[0],
             phone: body.phone,
             address: body.address,
             role: body.email.includes("admin") ? "admin" : "customer"
-          });
+          }).catch(e => console.warn("Supabase user sync error:", e));
         }
       }
       if (path.includes("/admin/customers") || path.includes("/admin/users")) {
@@ -549,7 +533,27 @@ export async function api(path, options = {}) {
         if (supaProfiles && supaProfiles.length > 0) return supaProfiles;
       }
     } catch (supaErr) {
-      console.warn("Supabase dataset query fallback to local store:", supaErr);
+      console.warn("Supabase query fallback to local store:", supaErr);
+    }
+  }
+
+  // 2. Try Fetching Express Backend (Skipped on Native Mobile if no full host specified to prevent timeout)
+  if (!isCapacitorNative && API_BASE) {
+    try {
+      const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {})
+        }
+      });
+      if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        return data;
+      }
+    } catch (err) {
+      console.warn(`API call to ${path} using persistent database fallback.`);
     }
   }
 
