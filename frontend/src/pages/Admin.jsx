@@ -129,22 +129,12 @@ export default function Admin() {
 
   if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading admin dashboard...</h1></main>;
 
-  function exportCustomerDataset() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", "smartshop_customer_dataset.json");
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  }
-
   return (
     <main className="section">
       <div className="section-title">
         <div>
           <p>Operations & Database Dataset</p>
-          <h2>Admin Control Panel & Customer Dataset</h2>
+          <h2>Admin Control Panel & System Directory</h2>
         </div>
         <div className="flex gap-2">
           <button
@@ -163,16 +153,16 @@ export default function Admin() {
             className={`btn-secondary text-sm ${activeTab === "customers" ? "border-mint text-mint" : ""}`}
             onClick={() => setActiveTab("customers")}
           >
-            <Database size={16} /> Customer Dataset ({customers.length})
+            <Database size={16} /> User Directory ({customers.length})
           </button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard label="Revenue" value={`₹${overview.revenue}`} detail="+24% lift" />
-        <MetricCard label="Pending Seller Products" value={pendingProducts.length} detail="awaiting review" tone="gold" />
-        <MetricCard label="Total Orders" value={orders.length || overview.orders} detail="processed" tone="sky" />
-        <MetricCard label="Active Products" value={products.length || overview.products} detail="catalog SKUs" tone="coral" />
+        <MetricCard label="Total Revenue" value={`₹${overview.revenue}`} detail="+24% lift" />
+        <MetricCard label="Registered Customers" value={customersList.length} detail="shoppers" tone="sky" />
+        <MetricCard label="Company Owners" value={vendorsList.length} detail="sellers" tone="gold" />
+        <MetricCard label="System Admins" value={adminsList.length} detail="administrators" tone="coral" />
       </div>
 
       {activeTab === "pending" ? (
@@ -225,46 +215,161 @@ export default function Admin() {
         </section>
       ) : activeTab === "customers" ? (
         <section className="panel mt-6">
-          <div className="flex items-center justify-between border-b border-black/10 pb-4 dark:border-white/10">
+          {/* Sub-Directory Selector Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-black/10 pb-4 dark:border-white/10 gap-4">
             <div>
-              <h3 className="panel-title mb-0">Saved Customer Dataset & Directory</h3>
-              <p className="text-xs text-slate-500">Every customer registration, contact email, address, and purchase record stored in the database</p>
+              <h3 className="panel-title mb-0">Categorized User Directory & Dataset</h3>
+              <p className="text-xs text-slate-500">Separate database lists for Customers, Company Owners, and System Administrators</p>
             </div>
-            <button className="btn-primary text-sm" onClick={exportCustomerDataset}>
-              <Download size={16} /> Export Dataset (JSON)
-            </button>
+            <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+              <button
+                onClick={() => setDatasetFilter("customers")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${datasetFilter === "customers" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+              >
+                🛍️ Customers ({customersList.length})
+              </button>
+              <button
+                onClick={() => setDatasetFilter("vendors")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${datasetFilter === "vendors" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+              >
+                🏢 Company Owners ({vendorsList.length})
+              </button>
+              <button
+                onClick={() => setDatasetFilter("admins")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${datasetFilter === "admins" ? "bg-white text-slate-900 shadow dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+              >
+                🛡️ Admins ({adminsList.length})
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-black/10 bg-slate-100 dark:border-white/10 dark:bg-slate-800">
-                <tr>
-                  <th className="p-3 font-bold">ID</th>
-                  <th className="p-3 font-bold">Customer Name</th>
-                  <th className="p-3 font-bold">Email</th>
-                  <th className="p-3 font-bold">Role</th>
-                  <th className="p-3 font-bold">Shipping Address</th>
-                  <th className="p-3 font-bold">Total Orders</th>
-                  <th className="p-3 font-bold">Total Spent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((c) => (
-                  <tr key={c.user_id} className="border-b border-black/5 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-800/50">
-                    <td className="p-3 font-mono font-bold text-mint">#{c.user_id}</td>
-                    <td className="p-3 font-bold">{c.name}</td>
-                    <td className="p-3">{c.email}</td>
-                    <td className="p-3"><span className="rounded bg-mint/15 px-2 py-0.5 text-xs font-bold text-mint">{c.role}</span></td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-300">
-                      {c.address?.street ? `${c.address.street}, ${c.address.city}, ${c.address.state}` : "Standard Shipping On File"}
-                    </td>
-                    <td className="p-3 font-bold">{c.orders_count || 1}</td>
-                    <td className="p-3 font-bold text-mint">₹{(c.total_spent || 16999).toLocaleString('en-IN')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* LIST 1: CUSTOMERS */}
+          {datasetFilter === "customers" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-slate-500">Registered Customer Directory</span>
+                <button className="btn-primary text-xs" onClick={() => exportDataset(customersList, "customers_dataset.json")}>
+                  <Download size={14} /> Export Customers Dataset
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-black/10 bg-slate-100 dark:border-white/10 dark:bg-slate-800">
+                    <tr>
+                      <th className="p-3 font-bold">ID</th>
+                      <th className="p-3 font-bold">Customer Name</th>
+                      <th className="p-3 font-bold">Email</th>
+                      <th className="p-3 font-bold">Mobile</th>
+                      <th className="p-3 font-bold">Shipping Address</th>
+                      <th className="p-3 font-bold">Total Orders</th>
+                      <th className="p-3 font-bold">Total Spent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customersList.map((c) => (
+                      <tr key={c.user_id || c.email} className="border-b border-black/5 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-800/50">
+                        <td className="p-3 font-mono font-bold text-mint">#{c.user_id || 101}</td>
+                        <td className="p-3 font-bold">{c.name}</td>
+                        <td className="p-3">{c.email}</td>
+                        <td className="p-3 text-xs">{c.phone || "+91 9876543210"}</td>
+                        <td className="p-3 text-xs text-slate-600 dark:text-slate-300">
+                          {c.address?.street ? `${c.address.street}, ${c.address.city}, ${c.address.state}` : "Standard Shipping On File"}
+                        </td>
+                        <td className="p-3 font-bold">{c.ordersCount || 1}</td>
+                        <td className="p-3 font-bold text-mint">₹{c.totalSpent ? c.totalSpent.toLocaleString("en-IN") : "16,999"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* LIST 2: COMPANY OWNERS (VENDORS) */}
+          {datasetFilter === "vendors" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-slate-500">Registered Company Owners & Merchant Directory</span>
+                <button className="btn-primary text-xs" onClick={() => exportDataset(vendorsList, "company_owners_dataset.json")}>
+                  <Download size={14} /> Export Sellers Dataset
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-black/10 bg-indigo-950/20 text-indigo-400 dark:border-white/10 dark:bg-slate-800">
+                    <tr>
+                      <th className="p-3 font-bold">Seller ID</th>
+                      <th className="p-3 font-bold">Company / Brand Name</th>
+                      <th className="p-3 font-bold">Owner Name</th>
+                      <th className="p-3 font-bold">Business Email</th>
+                      <th className="p-3 font-bold">Mobile</th>
+                      <th className="p-3 font-bold">GSTIN / Reg ID</th>
+                      <th className="p-3 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vendorsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-xs text-slate-400">No company owners registered yet. Use Company Owner registration tab in Auth page to create seller accounts!</td>
+                      </tr>
+                    ) : (
+                      vendorsList.map((v) => (
+                        <tr key={v.user_id || v.email} className="border-b border-black/5 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-800/50">
+                          <td className="p-3 font-mono font-bold text-indigo-400">#VND-{v.user_id || Math.floor(1000 + Math.random() * 9000)}</td>
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">{v.company_name || v.name}</td>
+                          <td className="p-3">{v.name}</td>
+                          <td className="p-3 font-medium">{v.email}</td>
+                          <td className="p-3 text-xs">{v.phone || "+91 9876543210"}</td>
+                          <td className="p-3 font-mono text-xs text-amber-500">{v.gstin || "29ABCDE1234F1Z5"}</td>
+                          <td className="p-3">
+                            <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">Verified Seller</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* LIST 3: SYSTEM ADMINISTRATORS */}
+          {datasetFilter === "admins" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-slate-500">System Administrators & Privileged Personnel</span>
+                <button className="btn-primary text-xs" onClick={() => exportDataset(adminsList, "administrators_dataset.json")}>
+                  <Download size={14} /> Export Admins Dataset
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-black/10 bg-slate-100 dark:border-white/10 dark:bg-slate-800">
+                    <tr>
+                      <th className="p-3 font-bold">Admin ID</th>
+                      <th className="p-3 font-bold">Admin Name</th>
+                      <th className="p-3 font-bold">Email</th>
+                      <th className="p-3 font-bold">Role & Access Level</th>
+                      <th className="p-3 font-bold">Security Passcode</th>
+                      <th className="p-3 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminsList.map((a) => (
+                      <tr key={a.user_id || a.email} className="border-b border-black/5 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-800/50">
+                        <td className="p-3 font-mono font-bold text-amber-500">#ADM-{a.user_id || "001"}</td>
+                        <td className="p-3 font-bold">{a.name || "System Administrator"}</td>
+                        <td className="p-3 font-medium">{a.email}</td>
+                        <td className="p-3"><span className="rounded bg-indigo-500/20 px-2 py-0.5 text-xs font-bold text-indigo-400">Super Administrator</span></td>
+                        <td className="p-3 font-mono text-xs text-slate-400">•••••••• (admin123)</td>
+                        <td className="p-3"><span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">Active</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </section>
       ) : (
         <>
