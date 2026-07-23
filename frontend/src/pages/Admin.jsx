@@ -127,6 +127,12 @@ export default function Admin() {
     );
   }
 
+  const [datasetFilter, setDatasetFilter] = useState("customers");
+
+  const vendorsList = customers.filter(c => c.role === "vendor" || c.company_name || c.address?.company_name || c.address?.is_vendor);
+  const adminsList = customers.filter(c => c.role === "admin" || c.email.includes("admin"));
+  const customersList = customers.filter(c => !vendorsList.includes(c) && !adminsList.includes(c));
+
   if (!overview) return <main className="section"><h1 className="text-2xl font-black">Loading admin dashboard...</h1></main>;
 
   return (

@@ -334,13 +334,16 @@ class PersistentDatabase {
     let found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
     if (!found) {
+      const role = extra.role || (extra.companyName || extra.company_name ? "vendor" : email.includes("admin") ? "admin" : "customer");
       found = {
         user_id: users.length + 1,
         name: extra.name || email.split("@")[0],
         email: email,
         phone: extra.phone || "+91 9876543210",
+        company_name: extra.companyName || extra.company_name || null,
+        gstin: extra.gstin || null,
         password: "otp-verified-pass",
-        role: email.includes("admin") ? "admin" : "customer",
+        role: role,
         address: extra.address || { fullName: extra.name || email.split("@")[0], street: "100 Innovation Way", city: "Austin", state: "TX", zip: "78701", phone: extra.phone || "+91 9876543210" },
         preferences: extra.preferences || ["General"],
         created_at: new Date().toISOString()
@@ -353,12 +356,15 @@ class PersistentDatabase {
         sender: "welcome@smartshop.ai",
         subject: "🎉 Account Registered & Details Saved",
         date: new Date().toLocaleDateString(),
-        snippet: `Hello ${found.name}, your account registration for ${email} is complete and stored in the customer dataset!`
+        snippet: `Hello ${found.name}, your account registration for ${email} as ${found.role} is complete and stored in the database!`
       });
-    } else if (extra.name || extra.phone || extra.address) {
+    } else if (extra.name || extra.phone || extra.address || extra.role || extra.companyName) {
       if (extra.name) found.name = extra.name;
       if (extra.phone) found.phone = extra.phone;
       if (extra.address) found.address = extra.address;
+      if (extra.role) found.role = extra.role;
+      if (extra.companyName) found.company_name = extra.companyName;
+      if (extra.gstin) found.gstin = extra.gstin;
       this.saveUsers(users);
     }
 
@@ -368,6 +374,8 @@ class PersistentDatabase {
         name: found.name,
         phone: found.phone,
         address: found.address,
+        company_name: found.company_name || extra.companyName,
+        gstin: found.gstin || extra.gstin,
         role: found.role
       }).catch(e => console.warn("Supabase user sync error:", e));
     }
@@ -542,7 +550,9 @@ export async function api(path, options = {}) {
             name: body.name || body.email.split("@")[0],
             phone: body.phone,
             address: body.address,
-            role: body.email.includes("admin") ? "admin" : "customer"
+            company_name: body.companyName || body.company_name,
+            gstin: body.gstin,
+            role: body.role || (body.companyName || body.company_name ? "vendor" : body.email.includes("admin") ? "admin" : "customer")
           }).catch(e => console.warn("Supabase user sync error:", e));
         }
       }

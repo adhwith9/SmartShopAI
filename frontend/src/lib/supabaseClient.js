@@ -242,23 +242,55 @@ export async function saveUserProfileInSupabase(profileData) {
   if (!isSupabaseConfigured() || !profileData || !profileData.email) return null;
 
   const email = profileData.email.toLowerCase().trim();
-  const userName = profileData.name || profileData.fullName || email.split("@")[0] || "Customer";
+  const userName = profileData.name || profileData.fullName || email.split("@")[0] || "User";
+  const companyName = profileData.companyName || profileData.company_name || null;
+  const gstin = profileData.gstin || null;
 
-  const payload = {
+  let role = profileData.role;
+  if (!role) {
+    if (companyName || email.includes("vendor") || email.includes("seller")) {
+      role = "vendor";
+    } else if (email.includes("admin")) {
+      role = "admin";
+    } else {
+      role = "customer";
+    }
+  }
+
+  let addressObj = typeof profileData.address === "object" ? { ...profileData.address } : {};
+  if (companyName) {
+    addressObj.company_name = companyName;
+    addressObj.gstin = gstin;
+    addressObj.is_vendor = true;
+  }
+
+  let payload = {
     email: email,
     name: userName,
     phone: profileData.phone || "+91 9876543210",
-    role: profileData.role || (email.includes("admin") ? "admin" : "customer"),
-    address: typeof profileData.address === "object" ? profileData.address : {},
+    role: role,
+    address: addressObj,
     updated_at: new Date().toISOString()
   };
 
   console.log("⚡ Saving user profile to Supabase:", payload);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("profiles")
     .upsert([payload], { onConflict: "email" })
     .select();
+
+  // Handle legacy Supabase database check constraint gracefully
+  if (error && error.message && error.message.includes("profiles_role_check")) {
+    console.warn("⚠️ Legacy Supabase check constraint detected. Retrying profile save with seller metadata...");
+    payload.role = "customer";
+    const retry = await supabase
+      .from("profiles")
+      .upsert([payload], { onConflict: "email" })
+      .select();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     console.error("❌ Error saving profile in Supabase:", error.message || error);
