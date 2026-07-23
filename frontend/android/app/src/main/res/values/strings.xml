@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SmartShop AI</string>
+    <string name="title_activity_main">SmartShop AI</string>
+    <string name="package_name">ai.smartshop.mobile.app</string>
+    <string name="custom_url_scheme">ai.smartshop.mobile.app</string>
+</resources>
