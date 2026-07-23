@@ -1,18 +1,32 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { logoutSession } from "../lib/authService";
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [theme, setTheme] = useState(localStorage.getItem("smartshop_theme") || "light");
+  const [theme, setTheme] = useState(localStorage.getItem("smartshop_theme") || "dark");
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("smartshop_user") || "null"));
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(JSON.parse(localStorage.getItem("smartshop_cart") || "[]"));
+  const [wishlist, setWishlist] = useState(JSON.parse(localStorage.getItem("smartshop_wishlist") || "[]"));
   const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.setItem("smartshop_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("smartshop_cart", JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem("smartshop_wishlist", JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  function toggleTheme() {
+    setTheme(prev => prev === "dark" ? "light" : "dark");
+  }
 
   function persistSession(payload) {
     if (payload && payload.token && payload.user) {
@@ -35,17 +49,43 @@ export function AppProvider({ children }) {
   }
 
   function logout() {
-    localStorage.removeItem("smartshop_token");
-    localStorage.removeItem("smartshop_user");
+    logoutSession();
     setUser(null);
   }
 
   async function addToCart(product) {
     setCart((items) => {
       const found = items.find((item) => item.product_id === product.product_id);
-      return found ? items.map((item) => item.product_id === product.product_id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }];
+      return found 
+        ? items.map((item) => item.product_id === product.product_id ? { ...item, quantity: item.quantity + 1 } : item) 
+        : [...items, { ...product, quantity: 1 }];
     });
     if (user) await api("/cart", { method: "POST", body: JSON.stringify({ product_id: product.product_id }) });
+  }
+
+  function updateCartQuantity(productId, newQty) {
+    if (newQty <= 0) {
+      removeFromCart(productId);
+    } else {
+      setCart((items) => items.map(item => item.product_id === productId ? { ...item, quantity: newQty } : item));
+    }
+  }
+
+  function removeFromCart(productId) {
+    setCart((items) => items.filter(item => item.product_id !== productId));
+  }
+
+  function clearCart() {
+    setCart([]);
+  }
+
+  function toggleWishlist(product) {
+    setWishlist((items) => {
+      const exists = items.some(item => item.product_id === product.product_id);
+      return exists 
+        ? items.filter(item => item.product_id !== product.product_id) 
+        : [...items, product];
+    });
   }
 
   function rememberProduct(product) {
@@ -53,8 +93,27 @@ export function AppProvider({ children }) {
   }
 
   const value = useMemo(() => ({
-    theme, setTheme, user, persistSession, login, register, logout, cart, setCart, addToCart, recentlyViewed, rememberProduct
-  }), [theme, user, cart, recentlyViewed]);
+    theme, 
+    setTheme, 
+    toggleTheme, 
+    user, 
+    setUser, 
+    persistSession, 
+    login, 
+    register, 
+    logout, 
+    cart, 
+    cartItems: cart, 
+    setCart, 
+    addToCart, 
+    updateCartQuantity, 
+    removeFromCart, 
+    clearCart, 
+    wishlist, 
+    toggleWishlist, 
+    recentlyViewed, 
+    rememberProduct
+  }), [theme, user, cart, wishlist, recentlyViewed]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

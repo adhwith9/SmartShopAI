@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MapPin, Phone, User, CheckCircle, Truck, Trash2, Plus, Minus, CreditCard, Wallet, QrCode, Building2, Banknote, ShieldCheck } from "lucide-react";
 import { api, MOCK_COUPONS } from "../lib/api";
 import { useApp } from "../context/AppContext";
+import { processPayment, generatePrintableInvoiceHtml } from "../lib/paymentService";
 
 export default function Cart({ setPage }) {
   const { cart, setCart, user } = useApp();
@@ -79,19 +80,15 @@ export default function Cart({ setPage }) {
     if (paymentMethod === "wallet") methodLabel = "SmartShop Pay Later Wallet";
 
     try {
-      const order = await api("/orders", {
-        method: "POST",
-        body: JSON.stringify({
-          items: cart.map(({ product_id, quantity, price, name }) => ({ product_id, quantity, price, name })),
-          subtotal,
-          discount: discountAmount,
-          total_amount: grandTotal,
-          payment_method: methodLabel,
-          address
-        })
+      const paymentRes = await processPayment({
+        amount: Math.round(grandTotal),
+        paymentMethod: methodLabel,
+        items: cart,
+        userEmail: user.email,
+        address
       });
 
-      setConfirmedOrder(order);
+      setConfirmedOrder(paymentRes.order);
       setCart([]);
       setStep("success");
     } catch (err) {
