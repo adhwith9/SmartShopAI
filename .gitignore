@@ -52,5 +52,6 @@ gh-pages-temp/
 
 # APK binaries
 *.apk
+!apk/SmartShopAI.apk
 
 
