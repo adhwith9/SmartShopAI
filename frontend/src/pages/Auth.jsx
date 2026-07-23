@@ -142,17 +142,30 @@ export default function Auth({ setPage }) {
           </button>
         </div>
 
-        {authMode === "customer" ? (
+        {authMode === "customer" || authMode === "vendor" ? (
           <div>
-            {/* Customer Login / Register Toggle */}
+            {/* Customer / Vendor Login Header */}
             <div className="flex justify-between items-center border-b border-black/10 pb-3 mb-5 dark:border-white/10">
-              <h1 className="text-xl font-black">{customerMode === "login" ? "Customer Login" : "Create New Account"}</h1>
+              <div>
+                <h1 className="text-xl font-black">
+                  {authMode === "vendor"
+                    ? customerMode === "login" ? "Company Owner Login" : "Register Your Company / Brand"
+                    : customerMode === "login" ? "Customer Login" : "Create Customer Account"}
+                </h1>
+                <p className="text-xs text-slate-500">
+                  {authMode === "vendor"
+                    ? "List products, manage inventory & track seller earnings"
+                    : "Access personalized AI shopping & order tracking"}
+                </p>
+              </div>
               <button
                 type="button"
                 className="text-xs font-bold text-mint hover:underline flex items-center gap-1"
                 onClick={() => { setCustomerMode(customerMode === "login" ? "register" : "login"); setStep("email"); setError(""); }}
               >
-                {customerMode === "login" ? <><UserPlus size={14} /> Create Account</> : <><UserCheck size={14} /> Login Existing Account</>}
+                {customerMode === "login"
+                  ? <><UserPlus size={14} /> {authMode === "vendor" ? "Register Company" : "Create Account"}</>
+                  : <><UserCheck size={14} /> {authMode === "vendor" ? "Seller Login" : "Existing Login"}</>}
               </button>
             </div>
 
@@ -177,11 +190,11 @@ export default function Auth({ setPage }) {
                       <div>
                         <label className="label">Company / Brand Name *</label>
                         <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
-                          <Building2 size={16} className="mr-2 text-slate-400" />
+                          <Building2 size={16} className="mr-2 text-indigo-400" />
                           <input
                             required
                             className="w-full bg-transparent text-sm outline-none"
-                            placeholder="e.g. Nexus Electronics Pvt Ltd"
+                            placeholder="e.g. Nexus Tech Ltd / Brand Name"
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
                           />
@@ -190,18 +203,18 @@ export default function Auth({ setPage }) {
                     )}
 
                     <div>
-                      <label className="label">{authMode === "vendor" ? "Owner / Contact Person Name *" : "Full Name *"}</label>
+                      <label className="label">{authMode === "vendor" ? "Company Owner Full Name *" : "Full Name *"}</label>
                       <input
                         required
                         className="input mt-1"
-                        placeholder="Enter your full name"
+                        placeholder="e.g. John Doe"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                       />
                     </div>
 
                     <div>
-                      <label className="label">Mobile Number *</label>
+                      <label className="label">{authMode === "vendor" ? "Business Mobile Number *" : "Mobile Number *"}</label>
                       <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
                         <Phone size={16} className="mr-2 text-slate-400" />
                         <input
@@ -216,9 +229,9 @@ export default function Auth({ setPage }) {
 
                     {authMode === "vendor" && (
                       <div>
-                        <label className="label">GSTIN / Business Reg ID (Optional)</label>
+                        <label className="label">GSTIN / Business Reg Number (Optional)</label>
                         <input
-                          className="input mt-1"
+                          className="input mt-1 text-xs"
                           placeholder="e.g. 29ABCDE1234F1Z5"
                           value={gstin}
                           onChange={(e) => setGstin(e.target.value)}
@@ -229,21 +242,21 @@ export default function Auth({ setPage }) {
                 )}
 
                 <div>
-                  <label className="label">Email Address *</label>
+                  <label className="label">{authMode === "vendor" ? "Business Email Address *" : "Email Address *"}</label>
                   <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
                     <Mail size={18} className="mr-2 text-slate-400" />
                     <input
                       required
                       type="email"
                       className="w-full bg-transparent text-sm outline-none"
-                      placeholder="name@example.com"
+                      placeholder="owner@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
 
-                {customerMode === "register" && (
+                {customerMode === "register" && authMode === "customer" && (
                   <div className="space-y-3 pt-2 border-t border-black/10 dark:border-white/10">
                     <label className="label text-xs font-bold text-slate-500 uppercase">Default Delivery Address (Optional)</label>
                     <div>
@@ -258,7 +271,7 @@ export default function Auth({ setPage }) {
                 )}
 
                 <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
-                  {loading ? "Generating OTP..." : customerMode === "register" ? "Create Account & Send Verification OTP" : "Send Login Verification OTP"} <ArrowRight size={16} />
+                  {loading ? "Generating OTP..." : authMode === "vendor" ? "Send Seller Verification OTP" : customerMode === "register" ? "Create Account & Send Verification OTP" : "Send Login Verification OTP"} <ArrowRight size={16} />
                 </button>
               </form>
             ) : (
@@ -277,7 +290,7 @@ export default function Auth({ setPage }) {
                 )}
 
                 <div>
-                  <label className="label">Enter 6-Digit OTP Code</label>
+                  <label className="label">Enter 6-Digit Verification Code</label>
                   <div className="mt-1 flex items-center rounded border border-black/15 px-3 py-2 dark:border-white/15">
                     <KeyRound size={18} className="mr-2 text-slate-400" />
                     <input
@@ -292,7 +305,7 @@ export default function Auth({ setPage }) {
                 </div>
 
                 <button className="btn-primary mt-6 w-full justify-center" disabled={loading}>
-                  {loading ? "Verifying OTP..." : "Verify OTP & Complete Setup"}
+                  {loading ? "Verifying..." : authMode === "vendor" ? "Verify OTP & Enter Seller Portal" : "Verify OTP & Complete Setup"}
                 </button>
               </form>
             )}
