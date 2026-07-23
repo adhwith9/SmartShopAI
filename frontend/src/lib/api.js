@@ -486,6 +486,19 @@ export async function api(path, options = {}) {
   const currentUser = userStr ? JSON.parse(userStr) : null;
   const isCapacitorNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
+  if (path.includes("/auth/admin-login")) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    const res = db.adminLogin(body.email || "admin@smartshop.ai", body.password || "admin123");
+    if (isSupabaseConfigured()) {
+      saveUserProfileInSupabase({
+        email: res.user.email,
+        name: res.user.name,
+        role: "admin"
+      }).catch(e => console.warn("Supabase admin sync error:", e));
+    }
+    return res;
+  }
+
   // 1. Supabase Dataset Cloud Database Handler (Evaluates First for Mobile & Cloud Resilience)
   if (isSupabaseConfigured()) {
     try {
@@ -516,7 +529,7 @@ export async function api(path, options = {}) {
         const supaReview = await addReviewInSupabase(body);
         if (supaReview) return supaReview;
       }
-      if (path.includes("/auth/send-otp") || path.includes("/auth/verify-otp") || path.includes("/auth/login") || path.includes("/auth/register")) {
+      if (path.includes("/auth/send-otp") || path.includes("/auth/verify-otp") || path === "/auth/login" || path.includes("/auth/register")) {
         const body = options.body ? JSON.parse(options.body) : {};
         if (body.email) {
           saveUserProfileInSupabase({
