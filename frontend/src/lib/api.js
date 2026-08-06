@@ -14,7 +14,8 @@ import {
   fetchPendingProductsFromSupabase,
   createVendorProductInSupabase,
   approveVendorProductInSupabase,
-  rejectVendorProductInSupabase
+  rejectVendorProductInSupabase,
+  createApprovedProductInSupabase
 } from "./supabaseClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
@@ -569,6 +570,14 @@ export async function api(path, options = {}) {
       if (path.includes("/admin/pending-products")) {
         const supaPending = await fetchPendingProductsFromSupabase();
         if (supaPending) return supaPending;
+      }
+      if (path.includes("/admin/products") && options.method === "POST") {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const supaProduct = await createApprovedProductInSupabase(body);
+        if (supaProduct) {
+          db.addProduct(body);
+          return supaProduct;
+        }
       }
       if (path.includes("/admin/approve-product")) {
         const body = options.body ? JSON.parse(options.body) : {};

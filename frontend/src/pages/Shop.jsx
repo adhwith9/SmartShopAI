@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
-import { SlidersHorizontal, Star, ShoppingBag, Check, Search } from "lucide-react";
-import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "../lib/api";
+import { useState, useMemo, useEffect } from "react";
+import { SlidersHorizontal, Star, ShoppingBag, Check, Search, RefreshCw } from "lucide-react";
+import { api, MOCK_PRODUCTS, MOCK_CATEGORIES } from "../lib/api";
 import { useApp } from "../context/AppContext";
 
 export default function Shop({ search = "", setPage }) {
   const { addToCart } = useApp();
+  const [productsList, setProductsList] = useState(MOCK_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [maxPrice, setMaxPrice] = useState(150000);
@@ -12,23 +14,41 @@ export default function Shop({ search = "", setPage }) {
   const [sortBy, setSortBy] = useState("featured");
   const [addedIds, setAddedIds] = useState({});
 
-  const brands = useMemo(() => ["All", ...new Set(MOCK_PRODUCTS.map((p) => p.brand))], []);
+  async function loadLiveProducts() {
+    setLoading(true);
+    try {
+      const data = await api("/products");
+      if (Array.isArray(data) && data.length > 0) {
+        setProductsList(data);
+      }
+    } catch (err) {
+      console.warn("Live products fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadLiveProducts();
+  }, []);
+
+  const brands = useMemo(() => ["All", ...new Set(productsList.map((p) => p.brand || p.company_name || "Official"))], [productsList]);
 
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((p) => {
-      const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
+    return productsList.filter((p) => {
+      const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()) || (p.description || "").toLowerCase().includes(search.toLowerCase());
       const matchCat = selectedCategory === "All" || p.category === selectedCategory;
-      const matchBrand = selectedBrand === "All" || p.brand === selectedBrand;
-      const matchPrice = p.price <= maxPrice;
-      const matchRating = p.rating >= minRating;
+      const matchBrand = selectedBrand === "All" || (p.brand || p.company_name) === selectedBrand;
+      const matchPrice = Number(p.price) <= maxPrice;
+      const matchRating = (Number(p.rating) || 4.5) >= minRating;
       return matchSearch && matchCat && matchBrand && matchPrice && matchRating;
     }).sort((a, b) => {
-      if (sortBy === "price-low") return a.price - b.price;
-      if (sortBy === "price-high") return b.price - a.price;
-      if (sortBy === "rating") return b.rating - a.rating;
-      return a.product_id - b.product_id;
+      if (sortBy === "price-low") return Number(a.price) - Number(b.price);
+      if (sortBy === "price-high") return Number(b.price) - Number(a.price);
+      if (sortBy === "rating") return (Number(b.rating) || 4.5) - (Number(a.rating) || 4.5);
+      return (a.product_id || 0) - (b.product_id || 0);
     });
-  }, [search, selectedCategory, selectedBrand, maxPrice, minRating, sortBy]);
+  }, [productsList, search, selectedCategory, selectedBrand, maxPrice, minRating, sortBy]);
 
   function handleAddToCart(product) {
     addToCart(product);
@@ -45,7 +65,13 @@ export default function Shop({ search = "", setPage }) {
           <p>Product Catalog & Discovery</p>
           <h2>Explore Electronics & AI Devices</h2>
         </div>
-        <span className="text-sm font-semibold text-slate-500">{filteredProducts.length} Products Found</span>
+        <div className="flex items-center gap-3">
+          <button onClick={loadLiveProducts} className="btn-secondary text-xs flex items-center gap-1.5" disabled={loading}>
+            <RefreshCw size={14} className={loading ? "animate-spin text-mint" : ""} />
+            {loading ? "Syncing..." : "Live Sync"}
+          </button>
+          <span className="text-sm font-semibold text-slate-500">{filteredProducts.length} Products Found</span>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">

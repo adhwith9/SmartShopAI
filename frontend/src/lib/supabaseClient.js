@@ -39,6 +39,42 @@ export async function fetchProductsFromSupabase() {
 }
 
 /**
+ * Create approved product directly in Supabase (Admin Action)
+ */
+export async function createApprovedProductInSupabase(productData) {
+  if (!isSupabaseConfigured()) return null;
+  const payload = {
+    product_id: Math.floor(100000 + Math.random() * 900000),
+    name: productData.name,
+    category: productData.category || "Electronics",
+    brand: productData.brand || "SmartShop Official",
+    price: Number(productData.price) || 999,
+    original_price: Number(productData.original_price) || Number(productData.price) * 1.2,
+    stock: Number(productData.stock) || 10,
+    rating: Number(productData.rating) || 4.5,
+    tags: Array.isArray(productData.tags) ? productData.tags : (productData.tags || "").split(",").map(t => t.trim()),
+    image: productData.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80",
+    images: [productData.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80"],
+    description: productData.description || "",
+    specifications: productData.specifications || {},
+    status: "approved",
+    created_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating approved admin product in Supabase:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
  * Fetch products created by a specific Company Owner / Vendor
  */
 export async function fetchVendorProductsFromSupabase(vendorEmail) {
