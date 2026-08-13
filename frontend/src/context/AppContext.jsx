@@ -5,10 +5,42 @@ import { logoutSession } from "../lib/authService";
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [theme, setTheme] = useState(localStorage.getItem("smartshop_theme") || "dark");
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("smartshop_user") || "null"));
-  const [cart, setCart] = useState(JSON.parse(localStorage.getItem("smartshop_cart") || "[]"));
-  const [wishlist, setWishlist] = useState(JSON.parse(localStorage.getItem("smartshop_wishlist") || "[]"));
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("smartshop_theme") || "dark";
+    } catch (e) {
+      return "dark";
+    }
+  });
+
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("smartshop_user");
+      return stored && stored !== "undefined" && stored !== "null" ? JSON.parse(stored) : null;
+    } catch (e) {
+      console.warn("Failed to parse stored user session:", e);
+      return null;
+    }
+  });
+
+  const [cart, setCart] = useState(() => {
+    try {
+      const stored = localStorage.getItem("smartshop_cart");
+      return stored && stored !== "undefined" && stored !== "null" ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const stored = localStorage.getItem("smartshop_wishlist");
+      return stored && stored !== "undefined" && stored !== "null" ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   useEffect(() => {
